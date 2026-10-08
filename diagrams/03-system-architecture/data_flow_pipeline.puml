@@ -1,0 +1,72 @@
+@startuml data_flow_pipeline
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 4
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam linetype ortho
+
+skinparam component {
+    BackgroundColor #F8F9FA
+    BorderColor #1D3557
+    BorderThickness 1.2
+}
+
+skinparam database {
+    BackgroundColor #EDF2F4
+    BorderColor #2B2D42
+    BorderThickness 1.2
+}
+
+cloud "Hugging Face Hub / Remote Source\n(e.g., uoft-cs/cifar10, ylecun/mnist)" as HFHub
+
+package "Local Data Storage Hierarchy" as Storage {
+    folder "data/raw/<dataset>/\n(Arrow / Raw Cache)" as RawCache
+
+    package "data/processed/<dataset>/\n(High-Performance Apache Parquet)" as ProcessedDir {
+        database "train.parquet\n(45,000 samples / 90%)" as TrainParquet
+        database "val.parquet\n(5,000 samples / 10%)" as ValParquet
+        database "test.parquet\n(10,000 samples / Global Test)" as TestParquet
+    }
+}
+
+component "Preprocessing Engine\n(utils.prepare_and_save_dataset)" as PrepEngine
+
+component "Flower FederatedDataset\n(utils.get_federated_dataset_from_parquet)" as FlowerFDS
+
+package "Federated Partitioning Schemes" as PartScheme {
+    component "IidPartitioner\n(Uniform Random Distribution)" as IID
+    component "DirichletPartitioner\n(Heterogeneous Label Skew: Dir(α))" as NonIID
+}
+
+package "Simulated Federated Clients" as Clients {
+    database "Client 0 Partition (D_0)" as C0
+    database "Client 1 Partition (D_1)" as C1
+    database "Client K-1 Partition (D_{K-1})" as CK
+}
+
+component "Central Evaluation Loop" as CentralEval
+
+' Data Flow connections
+HFHub -down-> PrepEngine : Download Raw Dataset
+PrepEngine -down-> RawCache : Save Raw Disk Cache
+PrepEngine -down-> TrainParquet : Export Parquet
+PrepEngine -down-> ValParquet : Export Parquet
+PrepEngine -down-> TestParquet : Export Parquet
+
+TrainParquet -down-> FlowerFDS : Ingest Local Parquet
+FlowerFDS --> IID : Partition Mode A
+FlowerFDS --> NonIID : Partition Mode B
+
+IID -down-> C0 : Uniform Partition
+IID -down-> C1 : Uniform Partition
+IID -down-> CK : Uniform Partition
+
+NonIID -down-> C0 : Skewed Partition
+NonIID -down-> C1 : Skewed Partition
+NonIID -down-> CK : Skewed Partition
+
+ValParquet -down-> CentralEval : Validation Tuning
+TestParquet -down-> CentralEval : Final Benchmark Accuracy
+
+@enduml

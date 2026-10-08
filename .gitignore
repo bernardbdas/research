@@ -1,0 +1,105 @@
+# ==========================================
+# Byte-compiled / Optimized Python Files
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ==========================================
+# Distribution / Packaging
+# ==========================================
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+installed-files.txt
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ==========================================
+# Testing, Coverage & Linters
+# ==========================================
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+.ruff_cache/
+.ruff_cache
+**/.ruff_cache/
+.mypy_cache/
+
+
+# ==========================================
+# Jupyter Notebooks
+# ==========================================
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ==========================================
+# Data, Model Checkpoints & Experiment Logs
+# Preserve data directory structure with .gitkeep while ignoring actual data
+data/*
+!data/raw/
+!data/processed/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+datasets/
+checkpoints/
+logs/
+runs/
+wandb/
+results/
+outputs/
+*.log
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+
+# ==========================================
+# Environment Variables & Secrets
+# ==========================================
+*.env
+*.env.*
+!example.env
+!.env.example
+
+# ==========================================
+# Operating System Artifacts
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==========================================
+# Editors & IDEs
+# ==========================================
+.idea/
+*.swp
+*.swo
+*~

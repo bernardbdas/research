@@ -1,0 +1,50 @@
+@startuml communication_efficiency
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 4
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+
+|Client Uplink Stage|
+start
+:Compute Raw Weight Delta $\Delta \mathbf{w}_t^k \in \mathbb{R}^D$ (FP32: 32 bits/param);
+
+partition "Sparsification Pipeline" {
+    :Compute Absolute Magnitude $|\Delta \mathbf{w}_t^k|$;
+    :Sort magnitudes and determine threshold $\tau$;
+    :Generate Binary Mask $\mathbf{m} = \mathbb{I}(|\Delta \mathbf{w}| \ge \tau)$;
+    :Retain Top-$K\%$ non-zero coordinates ($1-K\%$ set to 0);
+}
+
+partition "Quantization Pipeline" {
+    :Compute dynamic scaling factor $s = \frac{\max |\Delta \mathbf{w}|}{2^{b-1} - 1}$;
+    :Apply Stochastic Rounding: $q = \text{clip}\left(\left\lfloor \frac{\Delta \mathbf{w}}{s} + \mathbf{u} \right\rceil, -2^{b-1}, 2^{b-1}-1\right)$;
+    :Cast to $b$-bit integer (e.g., INT8 / INT4);
+}
+
+partition "Transmission" {
+    :Pack non-zero values and sparse index coordinates;
+    note right
+      <b>Bandwidth Reduction:</b>
+      FP32 (32 bits) -> INT8 (8 bits) = 4x reduction
+      Top-10% Sparsification = 10x reduction
+      Combined ~40x uplink reduction
+    end note
+    :Transmit compressed payload over network channel;
+}
+
+|Server Downlink Stage|
+:Receive compressed payloads from all active clients $k \in S_t$;
+
+partition "Reconstruction & Aggregation" {
+    :Decompress bitstream and unpack indices;
+    :Dequantize integers back to float: $\Delta \hat{\mathbf{w}}_t^k = q \cdot s$;
+    :Reconstruct full dimension vectors $\Delta \hat{\mathbf{w}}_t^k$;
+    :Execute FedAvg Weighted Parameter Aggregation:
+    $\mathbf{w}_{t+1} = \mathbf{w}_t + \sum_{k=1}^K \frac{|\mathcal{D}_k|}{|\mathcal{D}|} \Delta \hat{\mathbf{w}}_t^k$;
+}
+
+:Broadcast updated global weights $\mathbf{w}_{t+1}$ to clients;
+stop
+
+@enduml

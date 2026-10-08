@@ -1,0 +1,54 @@
+name: CI - Lint & Format
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint-and-format:
+    name: Ruff & Markdown Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Check Python & Notebook linting (Ruff)
+        run: uv run ruff check .
+
+      - name: Check Python & Notebook formatting (Ruff)
+        run: uv run ruff format --check .
+
+      - name: Check Markdown formatting (mdformat)
+        run: uv run mdformat --check README.md
+
+  pre-commit:
+    name: Pre-Commit Hooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1

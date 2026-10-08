@@ -1,0 +1,60 @@
+@startuml fl_training_round
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 4
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign center
+
+skinparam participant {
+    BackgroundColor #F8F9FA
+    BorderColor #2B2D42
+    BorderThickness 1.2
+}
+
+autonumber "<b>[00]</b>"
+
+participant "Flower ServerApp\n(Driver / Orchestrator)" as Server
+participant "Strategy\n(FedAvg / FedProx)" as Strategy
+participant "ClientManager\n(Selection Engine)" as CM
+participant "ClientApp $k$\n(Edge Device / Worker)" as Client
+participant "Local JAX/Flax Engine\n(State & Optax)" as JAX
+
+== Round $t$ Initialization ==
+Server -> Strategy : configure_fit(server_round=t, parameters=w_t)
+Strategy -> CM : sample_clients(fraction_fit, min_available_clients)
+CM --> Strategy : selected_clients S_t = {Client_1, ..., Client_K}
+Strategy --> Server : Client instructions & global weights w_t
+
+== Broadcast & Local Training ==
+loop For each selected client k in S_t
+    Server -> Client : fit(parameters=w_t, config)
+    activate Client
+    Client -> JAX : unpack_parameters_to_pytree(w_t)
+
+    loop Local Epochs e = 1 to E
+        loop Mini-batches (X_b, Y_b) in D_k
+            Client -> JAX : loss, grads = jax.jit(grad_fn)(params, X_b, Y_b)
+            Client -> JAX : updates, opt_state = optax_optimizer.update(grads, opt_state)
+            Client -> JAX : params = optax.apply_updates(params, updates)
+        end
+    end
+
+    Client -> JAX : extract_leaves(params) -> local_weights w_{t+1}^k
+    Client --> Server : FitRes(parameters=w_{t+1}^k, num_examples=|D_k|, metrics)
+    deactivate Client
+end
+
+== Global Aggregation ==
+Server -> Strategy : aggregate_fit(server_round=t, results)
+activate Strategy
+Strategy -> Strategy : Compute weighted average:\nw_{t+1} = sum(|D_k| / |D| * w_{t+1}^k)
+Strategy --> Server : updated global weights w_{t+1}
+deactivate Strategy
+
+== Centralized / Federated Evaluation ==
+Server -> Strategy : evaluate(parameters=w_{t+1})
+Strategy --> Server : Global Test Loss & Accuracy
+Server -> Server : Log metrics to TensorBoard / History
+
+@enduml

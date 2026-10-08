@@ -1,0 +1,138 @@
+@startuml model_architectures
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 4
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam classFontName "Helvetica"
+skinparam linetype ortho
+
+skinparam class {
+    BackgroundColor #F8F9FA
+    BorderColor #2B2D42
+    BorderThickness 1.2
+    ArrowColor #2B2D42
+}
+
+abstract class "flax.linen.Module" as Module <<Flax Core>> {
+    + init(rngs, *args, **kwargs) : FrozenDict
+    + apply(variables, *args, **kwargs) : Any
+}
+
+class "SimpleCNN" as SimpleCNN <<Flax Module>> {
+    + num_classes : int = 10
+    + dropout_rate : float = 0.0
+    --
+    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    .. Internal Layers ..
+    - conv1 : Conv(32, 3x3)
+    - conv2 : Conv(64, 3x3)
+    - conv3 : Conv(128, 3x3)
+    - gap : GlobalAveragePooling
+    - fc1 : Dense(256)
+    - fc2 : Dense(num_classes)
+}
+
+class "BasicBlock" as BasicBlock <<Flax Submodule>> {
+    + features : int
+    + stride : int = 1
+    --
+    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    .. Residual Shortcut ..
+    - conv1 : Conv(features, 3x3)
+    - bn1 : BatchNorm
+    - conv2 : Conv(features, 3x3)
+    - bn2 : BatchNorm
+    - shortcut : Conv(1x1) [conditional]
+}
+
+class "ResNet" as ResNet <<Flax Module>> {
+    + stage_sizes : Sequence[int]
+    + num_classes : int = 10
+    --
+    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    .. Layers ..
+    - init_conv : Conv(64, 3x3)
+    - stages : List[BasicBlock]
+    - gap : GlobalAveragePooling
+    - classifier : Dense(num_classes)
+}
+
+class "ResNet18" as ResNet18 <<Flax Module>> {
+    + stage_sizes : (2, 2, 2, 2)
+    + num_classes : int = 10
+}
+
+class "InvertedResidual" as InvertedResidual <<Flax Submodule>> {
+    + in_features : int
+    + out_features : int
+    + stride : int
+    + expand_ratio : int
+    --
+    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    .. Operations ..
+    - expand_conv : Conv(1x1)
+    - depthwise_conv : Conv(3x3, groups=hidden)
+    - linear_bottleneck : Conv(1x1)
+}
+
+class "MobileNetV2" as MobileNetV2 <<Flax Module>> {
+    + num_classes : int = 10
+    + width_mult : float = 1.0
+    --
+    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    .. Bottlenecks ..
+    - init_conv : Conv(32, 3x3)
+    - inverted_residuals : List[InvertedResidual]
+    - last_conv : Conv(1280, 1x1)
+    - gap : GlobalAveragePooling
+    - classifier : Dense(num_classes)
+}
+
+class "VGG" as VGG <<Flax Module>> {
+    + config : Sequence[int | str]
+    + num_classes : int = 10
+    + use_batch_norm : bool = True
+    + dropout_rate : float = 0.0
+    --
+    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    .. Feature Blocks ..
+    - conv_blocks : List[Conv + BatchNorm + MaxPool]
+    - gap : GlobalAveragePooling
+    - fc1 : Dense(512)
+    - classifier : Dense(num_classes)
+}
+
+class "VGG16" as VGG16 <<Flax Module>> {
+    + config : CFG_VGG["VGG16"]
+    + num_classes : int = 10
+}
+
+class "ModelRegistry" as ModelRegistry <<Factory>> {
+    + MODEL_REGISTRY : dict[str, Type[Module]]
+    --
+    + get_model(name: str, num_classes: int, **kwargs) : Module
+    + list_models() : list[str]
+    + count_parameters(variables: dict) : int
+}
+
+Module <|-- SimpleCNN
+Module <|-- BasicBlock
+Module <|-- ResNet
+Module <|-- InvertedResidual
+Module <|-- MobileNetV2
+Module <|-- VGG
+
+ResNet <|-- ResNet18
+VGG <|-- VGG16
+
+ResNet *-- BasicBlock : composes
+MobileNetV2 *-- InvertedResidual : composes
+
+ModelRegistry ..> SimpleCNN : instantiates
+ModelRegistry ..> ResNet18 : instantiates
+ModelRegistry ..> MobileNetV2 : instantiates
+ModelRegistry ..> VGG16 : instantiates
+
+@enduml

@@ -1,0 +1,73 @@
+@startuml fl_system_overview
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 4
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+skinparam component {
+    BackgroundColor #F8F9FA
+    BorderColor #2B2D42
+    BorderThickness 1.2
+}
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #4A4E69
+    BorderThickness 1.2
+    FontStyle bold
+}
+
+package "Flower Central Coordinator (Server)" as ServerSide {
+    component "Flower ServerApp Engine\n(Driver / Event Loop)" as S_Engine
+    component "Aggregation Strategy\n(FedAvg / FedProx / FedOpt)" as S_Strat
+    component "Client Manager\n(Sampling & Availability)" as S_CM
+    component "Global Model Registry\n(Global State $\mathbf{w}_t$)" as S_Model
+    component "Centralized Evaluator\n(Global Test Metrics)" as S_Eval
+
+    S_Engine --> S_Strat : Invoke Aggregation
+    S_Strat --> S_CM : Query Active Clients
+    S_Strat --> S_Model : Update Parameters
+    S_Model --> S_Eval : Benchmark Global Model
+}
+
+cloud "Secure Parameter Transport Channel\n(gRPC / Protocol Buffers over TLS)" as Network
+
+package "Federated Edge Client $k \in \{1, \dots, K\}$" as ClientSide {
+    component "Flower ClientApp Worker\n(NumPyClient Interface)" as C_App
+
+    package "Client Computation Stack (JAX / Flax)" as JAXStack {
+        component "Model Backbone\n(SimpleCNN / ResNet / MobileNet / VGG)" as C_Model
+        component "Local Optimizer & Trainer\n(Optax State Engine)" as C_Opt
+        component "Privacy Engine (Optional)\n(DP-SGD: Clipping $C$ + Gaussian Noise $\sigma$)" as C_DP
+        component "Compression Engine (Optional)\n(Quantization: FP32 -> INT8 / Sparsification)" as C_Comp
+    }
+
+    database "Strictly On-Device Private Partition $\mathcal{D}_k$\n(Extracted from Parquet / Never Leaves Device)" as LocalData
+
+    LocalData -up-> C_Model : Mini-batch Stream
+    C_Model <-> C_Opt : Forward / Backward Gradients
+    C_Opt --> C_DP : Per-Sample Gradients
+    C_DP --> C_Comp : Private Gradient Update
+    C_Comp --> C_App : Encoded Delta $\Delta \mathbf{w}_t^k$
+}
+
+' Interactions
+S_Engine <..down..> Network : Broadcast Global Parameters $\mathbf{w}_t$
+Network <..down..> C_App : Receive Weights & Transmit Updates $\Delta \mathbf{w}_t^k$
+
+note right of LocalData
+  <b>Zero-Leakage Guarantee:</b>
+  Raw data samples never leave
+  the client's local memory boundary.
+end note
+
+note right of S_Strat
+  <b>Aggregation Protocol:</b>
+  Weighted Parameter Averaging
+  $\mathbf{w}_{t+1} = \sum_{k=1}^K \frac{|\mathcal{D}_k|}{|\mathcal{D}|} \mathbf{w}_{t+1}^k$
+end note
+
+@enduml

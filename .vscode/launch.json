@@ -1,0 +1,88 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/local.env",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: Current File (with Lint Check)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/local.env",
+      "preLaunchTask": "Just: Check (Lint & Format Check)",
+      "justMyCode": true
+    },
+    {
+      "name": "Task: Check Quality (Lint & Format Check)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Check (Lint & Format Check)"
+    },
+    {
+      "name": "Task: Run Pre-commit Hooks",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Pre-commit"
+    },
+    {
+      "name": "Task: Format (Code & Markdown)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Format"
+    },
+    {
+      "name": "Task: Lint & Fix",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Lint & Fix"
+    },
+    {
+      "name": "Task: Test Model Backbones",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Test Models"
+    },
+    {
+      "name": "Task: Prepare CIFAR-10 Parquet Data",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Prepare CIFAR-10 Data"
+    },
+    {
+      "name": "Task: Re-render UML Diagrams",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Render Diagrams"
+    },
+    {
+      "name": "Task: Clean Caches",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sys",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Clean Caches"
+    }
+  ]
+}

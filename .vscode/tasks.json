@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Just: Check (Lint & Format Check)",
+      "type": "shell",
+      "command": "just check",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Lint",
+      "type": "shell",
+      "command": "just lint",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Lint & Fix",
+      "type": "shell",
+      "command": "just lint-fix",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Format",
+      "type": "shell",
+      "command": "just format",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Pre-commit",
+      "type": "shell",
+      "command": "just pre-commit",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Test Models",
+      "type": "shell",
+      "command": "just test-models",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Prepare CIFAR-10 Data",
+      "type": "shell",
+      "command": "just prepare-data cifar10 0.1",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Render Diagrams",
+      "type": "shell",
+      "command": "just diagrams",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Clean Caches",
+      "type": "shell",
+      "command": "just clean",
+      "problemMatcher": []
+    }
+  ]
+}

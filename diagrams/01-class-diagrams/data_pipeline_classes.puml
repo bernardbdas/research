@@ -1,0 +1,107 @@
+@startuml data_pipeline_classes
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 4
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam classFontSize 12
+skinparam linetype ortho
+
+skinparam class {
+    BackgroundColor #F8F9FA
+    BorderColor #1D3557
+    BorderThickness 1.2
+}
+
+abstract class "Partitioner" as Partitioner <<flwr_datasets>> {
+    + num_partitions : int
+    + dataset : Dataset
+    --
+    + {abstract} load_partition(partition_id: int) : Dataset
+    + is_dataset_assigned() : bool
+}
+
+class "IidPartitioner" as IidPartitioner <<flwr_datasets>> {
+    + num_partitions : int
+    --
+    + load_partition(partition_id: int) : Dataset
+    .. Behavior ..
+    Uniform random distribution of samples
+}
+
+class "DirichletPartitioner" as DirichletPartitioner <<flwr_datasets>> {
+    + num_partitions : int
+    + partition_by : str
+    + alpha : float | Sequence[float]
+    + min_partition_size : int = 0
+    --
+    + load_partition(partition_id: int) : Dataset
+    .. Behavior ..
+    Simulates Non-IID label distribution skew
+}
+
+class "PathologicalPartitioner" as PathoPartitioner <<flwr_datasets>> {
+    + num_partitions : int
+    + partition_by : str
+    + num_classes_per_partition : int
+    --
+    + load_partition(partition_id: int) : Dataset
+}
+
+class "FederatedDataset" as FederatedDataset <<flwr_datasets>> {
+    + dataset_name : str
+    + partitioners : dict[str, Partitioner]
+    --
+    + load_partition(partition_id: int, split: str) : Dataset
+    + load_split(split: str) : Dataset
+}
+
+class "Dataset" as HFDataset <<HuggingFace Datasets>> {
+    + num_rows : int
+    + column_names : list[str]
+    + features : Features
+    --
+    + to_parquet(path: str) : None
+    + {static} from_parquet(path: str) : Dataset
+    + train_test_split(test_size: float, seed: int) : dict
+}
+
+class "DatasetDict" as HFDatasetDict <<HuggingFace Datasets>> {
+    + data : dict[str, Dataset]
+    --
+    + __getitem__(split: str) : Dataset
+}
+
+class "DataProcessingPipeline" as Pipeline <<utils.data_processing>> {
+    + DATASET_ALIASES : dict[str, str]
+    --
+    + prepare_and_save_dataset(name: str, val_ratio: float) : dict[str, Path]
+    + load_processed_dataset(name: str, split: str) : Dataset | DatasetDict
+    + get_federated_dataset_from_parquet(name: str, partitioners: dict) : FederatedDataset
+}
+
+class "ApacheParquetStore" as ParquetStore <<Storage: data/processed/>> {
+    + train.parquet : (45,000 samples)
+    + val.parquet : (5,000 samples)
+    + test.parquet : (10,000 samples)
+}
+
+class "RawDownloadCache" as RawStore <<Storage: data/raw/>> {
+    + arrow_cache_files : Binary
+}
+
+
+Partitioner <|-- IidPartitioner
+Partitioner <|-- DirichletPartitioner
+Partitioner <|-- PathoPartitioner
+
+FederatedDataset o-- Partitioner : utilizes
+FederatedDataset ..> HFDataset : generates partitions
+
+Pipeline ..> RawStore : downloads to
+Pipeline ..> ParquetStore : writes splits to
+Pipeline ..> FederatedDataset : constructs from Parquet
+HFDataset ..> ParquetStore : serializes to / reads from
+HFDatasetDict *-- HFDataset : contains
+
+@enduml
