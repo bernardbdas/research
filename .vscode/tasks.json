@@ -49,6 +49,12 @@
       "problemMatcher": []
     },
     {
+      "label": "Just: Prepare All Benchmark Data (CIFAR-10 & MNIST)",
+      "type": "shell",
+      "command": "just prepare-all-data",
+      "problemMatcher": []
+    },
+    {
       "label": "Just: Render Diagrams",
       "type": "shell",
       "command": "just diagrams",
@@ -58,6 +64,19 @@
       "label": "Just: Clean Caches",
       "type": "shell",
       "command": "just clean",
+      "problemMatcher": []
+    },
+    {
+      "label": "Just: Setup Environment & Pre-commit Hooks",
+      "type": "shell",
+      "command": "just setup",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
       "problemMatcher": []
     }
   ]

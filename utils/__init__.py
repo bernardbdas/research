@@ -1,6 +1,7 @@
 """Utility modules for data management, metrics, and preprocessing."""
 
 from utils.data_processing import (
+    get_federated_dataset,
     get_federated_dataset_from_parquet,
     get_project_root,
     load_processed_dataset,
@@ -14,4 +15,5 @@ __all__ = [
     "prepare_and_save_dataset",
     "load_processed_dataset",
     "get_federated_dataset_from_parquet",
+    "get_federated_dataset",
 ]

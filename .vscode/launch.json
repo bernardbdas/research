@@ -69,6 +69,14 @@
       "preLaunchTask": "Just: Prepare CIFAR-10 Data"
     },
     {
+      "name": "Task: Prepare All Benchmark Data",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "copy",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Prepare All Benchmark Data"
+    },
+    {
       "name": "Task: Re-render UML Diagrams",
       "type": "debugpy",
       "request": "launch",
@@ -83,6 +91,14 @@
       "module": "copy",
       "console": "integratedTerminal",
       "preLaunchTask": "Just: Clean Caches"
+    },
+    {
+      "name": "Task: Setup Environment & Hooks",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "copy",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Just: Setup Environment & Pre-commit Hooks"
     }
   ]
 }

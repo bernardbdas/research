@@ -57,7 +57,27 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+**/data/raw/
+**/data/processed/
+**/data/*
 
+# Large dataset formats & serialized data
+*.parquet
+*.arrow
+*.feather
+*.bin
+*.dat
+
+# Large compressed archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.gz
+*.bz2
+*.xz
+
+# Cache & tracking directories
 datasets/
 checkpoints/
 logs/
@@ -65,6 +85,11 @@ runs/
 wandb/
 results/
 outputs/
+.cache/
+**/.cache/
+hf_cache/
+
+# Binary & serialized models/arrays
 *.log
 *.pkl
 *.pickle

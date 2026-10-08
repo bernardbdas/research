@@ -4,6 +4,7 @@ Downloads datasets into data/raw/, creates train/val/test splits,
 and exports them to data/processed/ in Apache Parquet format.
 """
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,20 @@ DATASET_ALIASES: dict[str, str] = {
 def get_project_root() -> Path:
     """Return the repository root directory."""
     return Path(__file__).resolve().parent.parent
+
+
+def configure_hf_cache_dir() -> Path:
+    """Ensure Hugging Face cache and home point strictly to <project_root>/data/raw."""
+    root = get_project_root()
+    raw_dir = root / "data" / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["HF_HOME"] = str(raw_dir)
+    os.environ["HF_DATASETS_CACHE"] = str(raw_dir)
+    return raw_dir
+
+
+# Configure cache directory on module import so any HF or Flower call uses data/raw
+configure_hf_cache_dir()
 
 
 def resolve_dataset_name(dataset_name: str) -> str:
@@ -224,4 +239,71 @@ def get_federated_dataset_from_parquet(
         dataset="parquet",
         data_files=data_files,
         partitioners=partitioners,
+    )
+
+
+def get_federated_dataset(
+    dataset_name: str,
+    partitioners: dict[str, Partitioner | int],
+    auto_prepare: bool = True,
+    val_ratio: float = 0.1,
+    **load_dataset_kwargs: Any,
+) -> FederatedDataset:
+    """Load or create a Flower FederatedDataset guaranteed to persist in data/.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name or shortcut of the dataset (e.g. 'cifar10', 'mnist', 'ylecun/mnist').
+    partitioners : dict[str, Partitioner | int]
+        Flower partitioner dictionary mapping split to Partitioner instance.
+    auto_prepare : bool
+        If True and processed Parquet does not exist, automatically runs
+        prepare_and_save_dataset() into data/raw/ and data/processed/. Default is True.
+    val_ratio : float
+        Ratio of training data to reserve for validation if preparing. Default is 0.1.
+    **load_dataset_kwargs : Any
+        Additional keyword arguments forwarded to dataset loader.
+
+    Returns
+    -------
+    FederatedDataset
+        Configured Flower FederatedDataset backed by data/.
+    """
+    root = get_project_root()
+    canonical = resolve_dataset_name(dataset_name)
+    clean_folder_name = dataset_name.replace("/", "_").lower()
+    proc_path = root / "data" / "processed" / clean_folder_name
+    raw_path = root / "data" / "raw" / clean_folder_name
+
+    has_parquet = proc_path.exists() and any(proc_path.glob("*.parquet"))
+
+    if has_parquet:
+        return get_federated_dataset_from_parquet(
+            dataset_name=dataset_name,
+            partitioners=partitioners,
+            processed_dir=proc_path,
+        )
+
+    if auto_prepare:
+        prepare_and_save_dataset(
+            dataset_name=dataset_name,
+            val_ratio=val_ratio,
+            raw_dir=raw_path,
+            processed_dir=proc_path,
+            **load_dataset_kwargs,
+        )
+        return get_federated_dataset_from_parquet(
+            dataset_name=dataset_name,
+            partitioners=partitioners,
+            processed_dir=proc_path,
+        )
+
+    raw_path.mkdir(parents=True, exist_ok=True)
+    load_kwargs = dict(load_dataset_kwargs)
+    load_kwargs.setdefault("cache_dir", str(raw_path))
+    return FederatedDataset(
+        dataset=canonical,
+        partitioners=partitioners,
+        **load_kwargs,
     )

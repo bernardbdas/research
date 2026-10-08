@@ -58,6 +58,11 @@ prepare-data dataset="cifar10" val_ratio="0.1":
     from utils import prepare_and_save_dataset; \
     prepare_and_save_dataset('{{dataset}}', val_ratio={{val_ratio}})"
 
+# Download and preprocess all core benchmark datasets into data/
+prepare-all-data:
+    @just prepare-data cifar10 0.1
+    @just prepare-data mnist 0.1
+
 # Clean temporary caches, bytecode, and build artifacts
 clean:
     find . -type d -name "__pycache__" -exec rm -rf {} +
