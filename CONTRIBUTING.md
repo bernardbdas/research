@@ -48,18 +48,25 @@ We enforce strict formatting and linting rules configured in `pyproject.toml` an
 automated via `justfile`:
 
 - **Code Quality Check**:
+
   ```bash
   just check
   ```
+
 - **Linting & Auto-Fixing**:
+
   ```bash
   just lint-fix
   ```
+
 - **Formatting (Code, Notebooks, Markdown)**:
+
   ```bash
   just format
   ```
+
 - **Pre-Commit Validation**:
+
   ```bash
   just pre-commit
   ```
@@ -96,13 +103,18 @@ ______________________________________________________________________
 
 1. **Fork** the repository and create a feature branch
    (`git checkout -b feat/your-feature`).
+
 1. Implement your changes following our coding and design guidelines.
+
 1. Ensure all tests and pre-commit checks pass:
+
    ```bash
    just check
    just pre-commit
    ```
+
 1. Commit your changes with clear, descriptive commit messages.
+
 1. Push to your branch and open a **Pull Request**.
 
 ______________________________________________________________________
