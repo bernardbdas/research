@@ -1,4 +1,4 @@
-# Contributing to Federated Learning & Privacy Research
+# Contributing to this Research Repository
 
 Thank you for your interest in contributing to this research repository! This project is
 maintained for **educational, academic research, and collaborative open-source
