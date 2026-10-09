@@ -1,18 +1,24 @@
 @startuml model_architectures
 skinparam monochrome false
 skinparam shadowing false
-skinparam roundcorner 4
+skinparam roundcorner 6
 skinparam defaultFontName "Helvetica"
 skinparam defaultFontSize 11
-skinparam classFontSize 12
-skinparam classFontName "Helvetica"
+skinparam classFontSize 11
 skinparam linetype ortho
 
 skinparam class {
     BackgroundColor #F8F9FA
-    BorderColor #2B2D42
+    BorderColor #1D3557
     BorderThickness 1.2
-    ArrowColor #2B2D42
+    ArrowColor #1D3557
+}
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #457B9D
+    BorderThickness 1.2
+    FontStyle bold
 }
 
 abstract class "flax.linen.Module" as Module <<Flax Core>> {
@@ -20,119 +26,98 @@ abstract class "flax.linen.Module" as Module <<Flax Core>> {
     + apply(variables, *args, **kwargs) : Any
 }
 
-class "SimpleCNN" as SimpleCNN <<Flax Module>> {
-    + num_classes : int = 10
-    + dropout_rate : float = 0.0
-    --
-    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
-    .. Internal Layers ..
-    - conv1 : Conv(32, 3x3)
-    - conv2 : Conv(64, 3x3)
-    - conv3 : Conv(128, 3x3)
-    - gap : GlobalAveragePooling
-    - fc1 : Dense(256)
-    - fc2 : Dense(num_classes)
+package "Residual & Multi-Scale Vision Backbones" {
+    class "ResNet" as ResNet <<Flax Module>> {
+        + stage_sizes : Sequence[int]
+        + num_classes : int = 10
+        + norm : str = "group"
+        --
+        + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    }
+    class "ResNet18" as ResNet18
+    class "ResNet50" as ResNet50
+    class "BasicBlock" as BasicBlock
+    class "Bottleneck" as Bottleneck
+
+    class "DenseNet169" as DenseNet169 <<Flax Module>>
+    class "GoogLeNet" as GoogLeNet <<Flax Module>>
+    class "InceptionV3" as InceptionV3 <<Flax Module>>
 }
 
-class "BasicBlock" as BasicBlock <<Flax Submodule>> {
-    + features : int
-    + stride : int = 1
-    --
-    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
-    .. Residual Shortcut ..
-    - conv1 : Conv(features, 3x3)
-    - bn1 : BatchNorm
-    - conv2 : Conv(features, 3x3)
-    - bn2 : BatchNorm
-    - shortcut : Conv(1x1) [conditional]
+package "Classic & Efficient Convolutional Backbones" {
+    class "SimpleCNN" as SimpleCNN <<Flax Module>>
+    class "AlexNet" as AlexNet <<Flax Module>>
+    class "VGG" as VGG <<Flax Module>> {
+        + config : Sequence[int | str]
+        + num_classes : int = 10
+        + norm : str = "group"
+        --
+        + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
+    }
+    class "VGG16" as VGG16
+    class "VGG19" as VGG19
+
+    class "MobileNetV2" as MobileNetV2 <<Flax Module>>
+    class "ShuffleNetV2" as ShuffleNetV2 <<Flax Module>>
 }
 
-class "ResNet" as ResNet <<Flax Module>> {
-    + stage_sizes : Sequence[int]
-    + num_classes : int = 10
-    --
-    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
-    .. Layers ..
-    - init_conv : Conv(64, 3x3)
-    - stages : List[BasicBlock]
-    - gap : GlobalAveragePooling
-    - classifier : Dense(num_classes)
+package "Attention & Test-Time Adaptive Architectures" {
+    class "VisionTransformer" as ViT <<Flax Module>> {
+        + patch_size : int = 4
+        + embed_dim : int = 192
+        + depth : int = 9
+        + num_heads : int = 3
+    }
+
+    class "VisionTTT" as VisionTTT <<Flax Module>> {
+        + inner_lr : float = 0.05
+        + depth : int = 2
+        --
+        + __call__(x : jnp.ndarray, test_time_update : bool) : jnp.ndarray
+    }
+    class "TTTLinearLayer" as TTTLayer {
+        + dim : int
+        + inner_lr : float
+    }
+
+    class "VisionTitans" as Titans <<Flax Module>> {
+        + memory_dim : int
+        + momentum : float
+    }
 }
 
-class "ResNet18" as ResNet18 <<Flax Module>> {
-    + stage_sizes : (2, 2, 2, 2)
-    + num_classes : int = 10
+package "Model Factory & Lifecycle Registry" {
+    class "ModelRegistry" as ModelRegistry <<Factory>> {
+        + MODEL_REGISTRY : dict[str, Type[Module]]
+        --
+        + get_model(name: str, num_classes: int, **kwargs) : Module
+        + list_models() : list[str]
+        + count_parameters(variables: dict) : int
+    }
 }
 
-class "InvertedResidual" as InvertedResidual <<Flax Submodule>> {
-    + in_features : int
-    + out_features : int
-    + stride : int
-    + expand_ratio : int
-    --
-    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
-    .. Operations ..
-    - expand_conv : Conv(1x1)
-    - depthwise_conv : Conv(3x3, groups=hidden)
-    - linear_bottleneck : Conv(1x1)
-}
-
-class "MobileNetV2" as MobileNetV2 <<Flax Module>> {
-    + num_classes : int = 10
-    + width_mult : float = 1.0
-    --
-    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
-    .. Bottlenecks ..
-    - init_conv : Conv(32, 3x3)
-    - inverted_residuals : List[InvertedResidual]
-    - last_conv : Conv(1280, 1x1)
-    - gap : GlobalAveragePooling
-    - classifier : Dense(num_classes)
-}
-
-class "VGG" as VGG <<Flax Module>> {
-    + config : Sequence[int | str]
-    + num_classes : int = 10
-    + use_batch_norm : bool = True
-    + dropout_rate : float = 0.0
-    --
-    + __call__(x : jnp.ndarray, train : bool) : jnp.ndarray
-    .. Feature Blocks ..
-    - conv_blocks : List[Conv + BatchNorm + MaxPool]
-    - gap : GlobalAveragePooling
-    - fc1 : Dense(512)
-    - classifier : Dense(num_classes)
-}
-
-class "VGG16" as VGG16 <<Flax Module>> {
-    + config : CFG_VGG["VGG16"]
-    + num_classes : int = 10
-}
-
-class "ModelRegistry" as ModelRegistry <<Factory>> {
-    + MODEL_REGISTRY : dict[str, Type[Module]]
-    --
-    + get_model(name: str, num_classes: int, **kwargs) : Module
-    + list_models() : list[str]
-    + count_parameters(variables: dict) : int
-}
-
-Module <|-- SimpleCNN
-Module <|-- BasicBlock
 Module <|-- ResNet
-Module <|-- InvertedResidual
-Module <|-- MobileNetV2
+Module <|-- SimpleCNN
+Module <|-- AlexNet
 Module <|-- VGG
+Module <|-- MobileNetV2
+Module <|-- ShuffleNetV2
+Module <|-- DenseNet169
+Module <|-- GoogLeNet
+Module <|-- InceptionV3
+Module <|-- ViT
+Module <|-- VisionTTT
+Module <|-- Titans
 
 ResNet <|-- ResNet18
+ResNet <|-- ResNet50
 VGG <|-- VGG16
+VGG <|-- VGG19
 
-ResNet *-- BasicBlock : composes
-MobileNetV2 *-- InvertedResidual : composes
+ResNet *-- BasicBlock
+ResNet *-- Bottleneck
+VisionTTT *-- TTTLayer
 
-ModelRegistry ..> SimpleCNN : instantiates
-ModelRegistry ..> ResNet18 : instantiates
-ModelRegistry ..> MobileNetV2 : instantiates
-ModelRegistry ..> VGG16 : instantiates
+ModelRegistry ..> Module : instantiates all registered backbones
 
 @enduml

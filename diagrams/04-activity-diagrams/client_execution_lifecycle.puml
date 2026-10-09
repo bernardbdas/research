@@ -1,52 +1,58 @@
 @startuml client_execution_lifecycle
 skinparam monochrome false
 skinparam shadowing false
-skinparam roundcorner 4
+skinparam roundcorner 6
 skinparam defaultFontName "Helvetica"
 skinparam defaultFontSize 11
+skinparam ActivityBorderColor #1D3557
+skinparam ActivityBackgroundColor #F8F9FA
+skinparam ActivityDiamondBorderColor #1D3557
+skinparam ActivityDiamondBackgroundColor #E9ECEF
+skinparam ArrowColor #1D3557
+skinparam ArrowThickness 1.2
 
 start
 
-:Receive Server Invitation for Round $t$;
+:Receive Server Invitation for Federated Round t;
 
-if (Selected by Server Sampling?) then (yes)
-    :Download Global Weights $\mathbf{w}_t$;
-    :Unpack NumPy weights into Flax parameter PyTree;
-    :Initialize Local Optax Optimizer State;
+if (Selected by Server ClientManager?) then (yes)
+    :Download Current Global Weights <b>w</b><sub>t</sub>;
+    :Unpack serialized NumPy arrays into Flax PyTree parameter dict;
+    :Initialize Local Optax Optimizer State (e.g., AdamW / SGD + Momentum);
 
-    repeat :For each Local Epoch $e = 1, \dots, E$;
-        repeat :For each Mini-batch $(X_b, Y_b) \subset \mathcal{D}_k$;
-            :Compute Forward Pass & Classification Loss;
+    repeat :For each Local Epoch e = 1, ..., E;
+        repeat :For each Mini-batch (X<sub>b</sub>, Y<sub>b</sub>) in local partition D<sub>k</sub>;
+            :Execute Forward Pass & Compute Task Loss;
 
-            if (Differential Privacy Enabled?) then (yes)
-                :Compute per-sample gradients via **jax.vmap(jax.grad)**;
-                :Clip gradient norms: $\bar{\mathbf{g}}_i = \mathbf{g}_i \cdot \min(1, \frac{C}{\|\mathbf{g}_i\|_2})$;
-                :Sum and inject calibrated Gaussian noise: $\tilde{\mathbf{g}} = \frac{1}{B} \left( \sum \bar{\mathbf{g}}_i + \mathcal{N}(0, \sigma^2 C^2 \mathbf{I}) \right)$;
-                :Update Privacy Accountant (accumulate spent $\epsilon, \delta$);
+            if (Differential Privacy (DP-SGD) Enabled?) then (yes)
+                :Compute per-sample gradients in parallel:\n<b>g</b><sub>i</sub> = jax.vmap(jax.grad(loss_fn))(params, X<sub>b</sub>, Y<sub>b</sub>);
+                :Clip gradient norms to threshold C:\nḡ<sub>i</sub> = <b>g</b><sub>i</sub> · min(1, C / ||<b>g</b><sub>i</sub>||₂);
+                :Inject calibrated Gaussian noise:\ng̃ = (1/B) · [ Σ<sub>i=1</sub><sup>B</sup> ḡ<sub>i</sub> + 𝒩(0, σ² C² <b>I</b>) ];
+                :Update Privacy Accountant (accumulate spent (ε, δ));
             else (no)
-                :Compute standard batch gradient $\mathbf{g} = \nabla_{\mathbf{w}} \mathcal{L}$;
+                :Compute standard batch gradient:\n<b>g</b> = ∇<sub><b>w</b></sub> ℒ(<b>w</b>; X<sub>b</sub>, Y<sub>b</sub>);
             endif
 
-            :Apply updates to model weights via **Optax**;
-        repeat while (More batches remaining in epoch?) is (yes)
+            :Apply gradient updates to local model weights via **Optax**:\nupdates, opt_state = optimizer.update(<b>g</b>, opt_state)\nparams = optax.apply_updates(params, updates);
+        repeat while (More mini-batches remaining in epoch?) is (yes)
         ->no;
     repeat while (More local epochs remaining?) is (yes)
     ->no;
 
-    :Extract trained local weights $\mathbf{w}_{t+1}^k$;
-    :Calculate parameter delta $\Delta \mathbf{w}_t^k = \mathbf{w}_{t+1}^k - \mathbf{w}_t$;
+    :Extract trained local weights <b>w</b><sub>t+1</sub><sup>k</sup> from PyTree;
+    :Calculate parameter delta:\nΔ<b>w</b><sub>t</sub><sup>k</sup> = <b>w</b><sub>t+1</sub><sup>k</sup> - <b>w</b><sub>t</sub>;
 
     if (Communication Compression Enabled?) then (yes)
-        :Apply Top-$K$ Sparsification (drop bottom $|1-K|\%$ updates);
-        :Apply INT8 Uniform Stochastic Quantization;
-        :Encode into compressed bitstream;
+        :Apply Top-K% Magnitude Sparsification;
+        :Apply Uniform Stochastic Quantization (FP32 -> INT8);
+        :Pack non-zero coordinates into compressed bitstream;
     else (no)
-        :Keep standard FP32 parameter arrays;
+        :Maintain full-precision FP32 parameter arrays;
     endif
 
-    :Transmit Update $\Delta \mathbf{w}_t^k$ and Sample Count $|\mathcal{D}_k|$ to Server;
+    :Transmit Update Δ<b>w</b><sub>t</sub><sup>k</sup> and Sample Count |D<sub>k</sub>| to Flower Server;
 else (no)
-    :Remain in Idle / Power-Saving State;
+    :Remain in Idle / Low-Power State for Round t;
 endif
 
 stop

@@ -1,5 +1,7 @@
 """Generic Simple CNN backbone for Federated Learning."""
 
+from typing import Any
+
 import flax.linen as nn
 import jax.numpy as jnp
 
@@ -22,7 +24,9 @@ class SimpleCNN(nn.Module):
     dropout_rate: float = 0.0
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray, train: bool = True) -> jnp.ndarray:
+    def __call__(
+        self, x: jnp.ndarray, train: bool = True, **kwargs: Any
+    ) -> jnp.ndarray:
         # Block 1
         x = nn.Conv(features=32, kernel_size=(3, 3), padding="SAME")(x)
         x = nn.relu(x)

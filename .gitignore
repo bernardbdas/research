@@ -128,3 +128,26 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# ==========================================
+# LaTeX Build Artifacts & Temporary Files
+# ==========================================
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.nav
+*.snm
+*.vrb
+*.bcf
+*.run.xml
+*.lot
+*.lof
+*.idx
+*.ilg
+*.ind

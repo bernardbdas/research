@@ -1,7 +1,7 @@
 @startuml data_flow_pipeline
 skinparam monochrome false
 skinparam shadowing false
-skinparam roundcorner 4
+skinparam roundcorner 6
 skinparam defaultFontName "Helvetica"
 skinparam defaultFontSize 11
 skinparam linetype ortho
@@ -18,55 +18,61 @@ skinparam database {
     BorderThickness 1.2
 }
 
-cloud "Hugging Face Hub / Remote Source\n(e.g., uoft-cs/cifar10, ylecun/mnist)" as HFHub
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #457B9D
+    BorderThickness 1.2
+}
 
-package "Local Data Storage Hierarchy" as Storage {
-    folder "data/raw/<dataset>/\n(Arrow / Raw Cache)" as RawCache
+cloud "Remote Dataset Repositories\n(Hugging Face Hub / Torchvision)" as HFHub
+
+package "Local Data Storage Layer" as Storage {
+    folder "data/raw/<dataset>/\n(Arrow Raw Download Cache)" as RawCache
 
     package "data/processed/<dataset>/\n(High-Performance Apache Parquet)" as ProcessedDir {
-        database "train.parquet\n(45,000 samples / 90%)" as TrainParquet
-        database "val.parquet\n(5,000 samples / 10%)" as ValParquet
-        database "test.parquet\n(10,000 samples / Global Test)" as TestParquet
+        database "train.parquet\n(e.g., 45,000 samples / 90%)" as TrainParquet
+        database "val.parquet\n(e.g., 5,000 samples / 10%)" as ValParquet
+        database "test.parquet\n(e.g., 10,000 samples / Test)" as TestParquet
     }
 }
 
 component "Preprocessing Engine\n(utils.prepare_and_save_dataset)" as PrepEngine
 
-component "Flower FederatedDataset\n(utils.get_federated_dataset_from_parquet)" as FlowerFDS
+component "Flower FederatedDataset\n(flwr_datasets Engine)" as FlowerFDS
 
 package "Federated Partitioning Schemes" as PartScheme {
     component "IidPartitioner\n(Uniform Random Distribution)" as IID
-    component "DirichletPartitioner\n(Heterogeneous Label Skew: Dir(α))" as NonIID
+    component "DirichletPartitioner\n(Heterogeneous Skew: Dir(α))" as NonIID
 }
 
-package "Simulated Federated Clients" as Clients {
-    database "Client 0 Partition (D_0)" as C0
-    database "Client 1 Partition (D_1)" as C1
-    database "Client K-1 Partition (D_{K-1})" as CK
+package "Simulated Federated Edge Clients" as Clients {
+    database "Client 0 Partition (D₀)" as C0
+    database "Client 1 Partition (D₁)" as C1
+    database "Client K-1 Partition (D<sub>K-1</sub>)" as CK
 }
 
-component "Central Evaluation Loop" as CentralEval
+component "Central Evaluation Loop\n(Benchmark Accuracy)" as CentralEval
 
-' Data Flow connections
-HFHub -down-> PrepEngine : Download Raw Dataset
-PrepEngine -down-> RawCache : Save Raw Disk Cache
-PrepEngine -down-> TrainParquet : Export Parquet
-PrepEngine -down-> ValParquet : Export Parquet
-PrepEngine -down-> TestParquet : Export Parquet
+' Data flow routing
+HFHub -down-> PrepEngine : Download Raw Split
+PrepEngine -down-> RawCache : Cache Raw Bytes
+PrepEngine -down-> TrainParquet : Export Cleaned Parquet
+PrepEngine -down-> ValParquet : Export Cleaned Parquet
+PrepEngine -down-> TestParquet : Export Cleaned Parquet
 
-TrainParquet -down-> FlowerFDS : Ingest Local Parquet
-FlowerFDS --> IID : Partition Mode A
-FlowerFDS --> NonIID : Partition Mode B
+TrainParquet -down-> FlowerFDS : Ingest Training Data
+FlowerFDS --> IID : IID Mode
+FlowerFDS --> NonIID : Non-IID Mode
 
-IID -down-> C0 : Uniform Partition
-IID -down-> C1 : Uniform Partition
-IID -down-> CK : Uniform Partition
+IID -down-> C0 : Balanced Split
+IID -down-> C1 : Balanced Split
+IID -down-> CK : Balanced Split
 
-NonIID -down-> C0 : Skewed Partition
-NonIID -down-> C1 : Skewed Partition
-NonIID -down-> CK : Skewed Partition
+NonIID -down-> C0 : Skewed Distribution
+NonIID -down-> C1 : Skewed Distribution
+NonIID -down-> CK : Skewed Distribution
 
-ValParquet -down-> CentralEval : Validation Tuning
-TestParquet -down-> CentralEval : Final Benchmark Accuracy
+ValParquet -down-> CentralEval : Validation & Tuning
+TestParquet -down-> CentralEval : Generalization Test
 
 @enduml

@@ -1,7 +1,7 @@
 @startuml differential_privacy_dp_sgd
 skinparam monochrome false
 skinparam shadowing false
-skinparam roundcorner 4
+skinparam roundcorner 6
 skinparam defaultFontName "Helvetica"
 skinparam defaultFontSize 11
 skinparam sequenceMessageAlign center
@@ -12,47 +12,54 @@ skinparam participant {
     BorderThickness 1.2
 }
 
+skinparam sequence {
+    ArrowColor #1D3557
+    ArrowThickness 1.2
+    LifeLineBorderColor #457B9D
+    LifeLineBackgroundColor #EBF2FA
+}
+
 autonumber "<b>[00]</b>"
 
 participant "DP Client Trainer\n(Local Worker)" as Trainer
 participant "JAX Autodiff Engine\n(jax.vmap + jax.grad)" as JAX
 participant "Clipping & Noise Kernel\n(DP Mechanism)" as DP
 participant "Optax Optimizer\n(State Update)" as Optax
-participant "Privacy Accountant\n(RDP / Moments)" as Accountant
+participant "Privacy Accountant\n(RDP / Moments Accountant)" as Accountant
 
-== Per-Step Differential Privacy (DP-SGD) Execution ==
+== Step 1: Per-Sample Gradient Computation ==
 
-Trainer -> Trainer : Sample Poisson/Mini-batch B = {(x_1, y_1), ..., (x_B, y_B)}
-Trainer -> JAX : Compute per-sample gradients in parallel:\ng_i = jax.vmap(jax.grad(loss_fn))(params, X_B, Y_B)
+Trainer -> Trainer : Sample Poisson mini-batch B = {(x₁, y₁), ..., (x<sub>B</sub>, y<sub>B</sub>)}
+Trainer -> JAX : Compute per-sample gradients in parallel:\n<b>g</b><sub>i</sub> = jax.vmap(jax.grad(loss_fn))(params, X<sub>B</sub>, Y<sub>B</sub>)
 activate JAX
-JAX --> Trainer : Tensor of per-sample gradients {g_1, ..., g_B}
+JAX --> Trainer : Batch of per-sample gradients {<b>g</b>₁, ..., <b>g</b><sub>B</sub>}
 deactivate JAX
 
-== Gradient Norm Clipping ==
+== Step 2: Per-Sample Gradient Norm Clipping ==
 Trainer -> DP : Clip per-sample gradient norms to threshold C
 activate DP
-DP -> DP : Compute norm: ||g_i||_2 for each sample i
-DP -> DP : Scale factor: s_i = min(1.0, C / ||g_i||_2)
-DP -> DP : Clipped gradient: ḡ_i = g_i * s_i
-DP --> Trainer : Clipped gradients {ḡ_1, ..., ḡ_B}
+DP -> DP : Compute Euclidean norm: ||<b>g</b><sub>i</sub>||₂ for each sample i
+DP -> DP : Scaling ratio: s<sub>i</sub> = min(1.0, C / ||<b>g</b><sub>i</sub>||₂)
+DP -> DP : Scale per-sample gradient: ḡ<sub>i</sub> = <b>g</b><sub>i</sub> · s<sub>i</sub>
+DP --> Trainer : Clipped gradient set {ḡ₁, ..., ḡ<sub>B</sub>}
 deactivate DP
 
-== Noise Calibration & Addition ==
-Trainer -> DP : Add calibrated Gaussian noise for (ε, δ) guarantee
+== Step 3: Calibrated Noise Addition ==
+Trainer -> DP : Add Gaussian perturbation for (ε, δ)-DP guarantee
 activate DP
-DP -> DP : Sum clipped gradients: G_sum = sum(ḡ_i)
-DP -> DP : Sample Gaussian vector: η ~ N(0, σ² * C² * I)
-DP -> DP : Perturbed gradient: G_private = (G_sum + η) / B
-DP --> Trainer : Differentially private gradient G_private
+DP -> DP : Sum clipped gradients: <b>G</b><sub>sum</sub> = Σ<sub>i=1</sub><sup>B</sup> ḡ<sub>i</sub>
+DP -> DP : Sample Gaussian noise: <b>η</b> ~ 𝒩(0, σ² C² <b>I</b>)
+DP -> DP : Form privatized gradient: <b>G</b><sub>private</sub> = (<b>G</b><sub>sum</sub> + <b>η</b>) / B
+DP --> Trainer : Differentially private gradient <b>G</b><sub>private</sub>
 deactivate DP
 
-== Model State & Privacy Budget Update ==
-Trainer -> Optax : updates, opt_state = optimizer.update(G_private, opt_state)
+== Step 4: Model State & Privacy Budget Update ==
+Trainer -> Optax : updates, opt_state = optimizer.update(<b>G</b><sub>private</sub>, opt_state)
 Trainer -> Optax : params = optax.apply_updates(params, updates)
-Trainer -> Accountant : step(sample_rate=B/N, noise_multiplier=σ)
+Trainer -> Accountant : step(sample_rate = B / N, noise_multiplier = σ)
 activate Accountant
-Accountant -> Accountant : Accumulate Renyi DP divergence
-Accountant --> Trainer : Current spent budget (ε, δ)
+Accountant -> Accountant : Accumulate Rényi DP divergence orders
+Accountant --> Trainer : Current spent privacy budget (ε, δ)
 deactivate Accountant
 
 @enduml

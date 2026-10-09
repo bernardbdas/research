@@ -1,7 +1,7 @@
 @startuml fl_training_round
 skinparam monochrome false
 skinparam shadowing false
-skinparam roundcorner 4
+skinparam roundcorner 6
 skinparam defaultFontName "Helvetica"
 skinparam defaultFontSize 11
 skinparam sequenceMessageAlign center
@@ -12,49 +12,57 @@ skinparam participant {
     BorderThickness 1.2
 }
 
+skinparam sequence {
+    ArrowColor #1D3557
+    ArrowThickness 1.2
+    LifeLineBorderColor #457B9D
+    LifeLineBackgroundColor #EBF2FA
+    GroupBorderColor #457B9D
+}
+
 autonumber "<b>[00]</b>"
 
-participant "Flower ServerApp\n(Driver / Orchestrator)" as Server
-participant "Strategy\n(FedAvg / FedProx)" as Strategy
+participant "Flower ServerApp\n(Coordinator / Driver)" as Server
+participant "Aggregator Strategy\n(FedAvg / FedMuon / FedProx)" as Strategy
 participant "ClientManager\n(Selection Engine)" as CM
-participant "ClientApp $k$\n(Edge Device / Worker)" as Client
-participant "Local JAX/Flax Engine\n(State & Optax)" as JAX
+participant "ClientApp k\n(Edge Worker)" as Client
+participant "Local JAX/Flax Engine\n(Autodiff & Optax)" as JAX
 
-== Round $t$ Initialization ==
-Server -> Strategy : configure_fit(server_round=t, parameters=w_t)
+== Round t Initialization ==
+Server -> Strategy : configure_fit(server_round=t, parameters=<b>w</b><sub>t</sub>)
 Strategy -> CM : sample_clients(fraction_fit, min_available_clients)
-CM --> Strategy : selected_clients S_t = {Client_1, ..., Client_K}
-Strategy --> Server : Client instructions & global weights w_t
+CM --> Strategy : selected clients S<sub>t</sub> = {Client<sub>1</sub>, ..., Client<sub>K</sub>}
+Strategy --> Server : Client instructions & global parameters <b>w</b><sub>t</sub>
 
-== Broadcast & Local Training ==
-loop For each selected client k in S_t
-    Server -> Client : fit(parameters=w_t, config)
+== Broadcast & Local Client Training ==
+loop For each selected client k ∈ S<sub>t</sub>
+    Server -> Client : fit(parameters=<b>w</b><sub>t</sub>, config)
     activate Client
-    Client -> JAX : unpack_parameters_to_pytree(w_t)
+    Client -> JAX : unpack_parameters_to_pytree(<b>w</b><sub>t</sub>)
 
-    loop Local Epochs e = 1 to E
-        loop Mini-batches (X_b, Y_b) in D_k
-            Client -> JAX : loss, grads = jax.jit(grad_fn)(params, X_b, Y_b)
+    loop Local Epoch e = 1, ..., E
+        loop Mini-batch (X<sub>b</sub>, Y<sub>b</sub>) in local partition D<sub>k</sub>
+            Client -> JAX : loss, grads = jax.jit(grad_fn)(params, X<sub>b</sub>, Y<sub>b</sub>)
             Client -> JAX : updates, opt_state = optax_optimizer.update(grads, opt_state)
             Client -> JAX : params = optax.apply_updates(params, updates)
         end
     end
 
-    Client -> JAX : extract_leaves(params) -> local_weights w_{t+1}^k
-    Client --> Server : FitRes(parameters=w_{t+1}^k, num_examples=|D_k|, metrics)
+    Client -> JAX : extract_leaves(params) -> local weights <b>w</b><sub>t+1</sub><sup>k</sup>
+    Client --> Server : FitRes(parameters=<b>w</b><sub>t+1</sub><sup>k</sup>, num_examples=|D<sub>k</sub>|, metrics)
     deactivate Client
 end
 
-== Global Aggregation ==
-Server -> Strategy : aggregate_fit(server_round=t, results)
+== Global Federated Aggregation ==
+Server -> Strategy : aggregate_fit(server_round=t, client_results)
 activate Strategy
-Strategy -> Strategy : Compute weighted average:\nw_{t+1} = sum(|D_k| / |D| * w_{t+1}^k)
-Strategy --> Server : updated global weights w_{t+1}
+Strategy -> Strategy : Compute weighted parameter aggregation:\n<b>w</b><sub>t+1</sub> = Σ<sub>k</sub> (|D<sub>k</sub>| / |D|) · <b>w</b><sub>t+1</sub><sup>k</sup>
+Strategy --> Server : updated global weights <b>w</b><sub>t+1</sub>
 deactivate Strategy
 
 == Centralized / Federated Evaluation ==
-Server -> Strategy : evaluate(parameters=w_{t+1})
+Server -> Strategy : evaluate(parameters=<b>w</b><sub>t+1</sub>)
 Strategy --> Server : Global Test Loss & Accuracy
-Server -> Server : Log metrics to TensorBoard / History
+Server -> Server : Log convergence metrics & trigger checkpoint
 
 @enduml

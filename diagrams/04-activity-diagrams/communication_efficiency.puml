@@ -1,50 +1,57 @@
 @startuml communication_efficiency
 skinparam monochrome false
 skinparam shadowing false
-skinparam roundcorner 4
+skinparam roundcorner 6
 skinparam defaultFontName "Helvetica"
 skinparam defaultFontSize 11
+skinparam ActivityBorderColor #1D3557
+skinparam ActivityBackgroundColor #F8F9FA
+skinparam ActivityDiamondBorderColor #1D3557
+skinparam ActivityDiamondBackgroundColor #E9ECEF
+skinparam PartitionBorderColor #457B9D
+skinparam PartitionBackgroundColor #FFFFFF
+skinparam ArrowColor #1D3557
+skinparam ArrowThickness 1.2
 
 |Client Uplink Stage|
 start
-:Compute Raw Weight Delta $\Delta \mathbf{w}_t^k \in \mathbb{R}^D$ (FP32: 32 bits/param);
+:Compute Raw Weight Delta Δ<b>w</b><sub>t</sub><sup>k</sup> ∈ ℝ<sup>D</sup>\n(Full precision FP32: 32 bits/param);
 
-partition "Sparsification Pipeline" {
-    :Compute Absolute Magnitude $|\Delta \mathbf{w}_t^k|$;
-    :Sort magnitudes and determine threshold $\tau$;
-    :Generate Binary Mask $\mathbf{m} = \mathbb{I}(|\Delta \mathbf{w}| \ge \tau)$;
-    :Retain Top-$K\%$ non-zero coordinates ($1-K\%$ set to 0);
+partition "Sparsification Pipeline (Top-K / Thresholding)" {
+    :Compute Absolute Coordinate Magnitudes |Δ<b>w</b><sub>t</sub><sup>k</sup>|;
+    :Sort magnitudes and determine cutoff threshold τ;
+    :Generate Binary Coordinate Mask: <b>m</b> = 𝕀(|Δ<b>w</b>| ≥ τ);
+    :Retain Top-K% active coordinates ((100-K)% set to zero);
 }
 
-partition "Quantization Pipeline" {
-    :Compute dynamic scaling factor $s = \frac{\max |\Delta \mathbf{w}|}{2^{b-1} - 1}$;
-    :Apply Stochastic Rounding: $q = \text{clip}\left(\left\lfloor \frac{\Delta \mathbf{w}}{s} + \mathbf{u} \right\rceil, -2^{b-1}, 2^{b-1}-1\right)$;
-    :Cast to $b$-bit integer (e.g., INT8 / INT4);
+partition "Quantization Pipeline (Uniform Stochastic)" {
+    :Compute Dynamic Scale Factor:\ns = max |Δ<b>w</b>| / (2<sup>b-1</sup> - 1);
+    :Apply Stochastic Rounding with uniform dither <b>u</b> ~ 𝒰(-0.5, 0.5):\nq = clip( round(Δ<b>w</b> / s + <b>u</b>), -2<sup>b-1</sup>, 2<sup>b-1</sup> - 1 );
+    :Cast quant values to b-bit integer representation\n(e.g., INT8: 8 bits or INT4: 4 bits);
 }
 
-partition "Transmission" {
-    :Pack non-zero values and sparse index coordinates;
+partition "Payload Packaging & Transmission" {
+    :Pack non-zero quantized values and sparse coordinate indices;
     note right
-      <b>Bandwidth Reduction:</b>
-      FP32 (32 bits) -> INT8 (8 bits) = 4x reduction
-      Top-10% Sparsification = 10x reduction
-      Combined ~40x uplink reduction
+      <b>Communication Compression Ratio:</b>
+      * FP32 (32b) -> INT8 (8b) = 4× reduction
+      * Top-10% Sparsity = 10× reduction
+      * <b>Compound Gain: ~40× Uplink Reduction</b>
     end note
-    :Transmit compressed payload over network channel;
+    :Transmit compressed payload over gRPC uplink channel;
 }
 
 |Server Downlink Stage|
-:Receive compressed payloads from all active clients $k \in S_t$;
+:Receive compressed client updates from active subset S<sub>t</sub>;
 
-partition "Reconstruction & Aggregation" {
-    :Decompress bitstream and unpack indices;
-    :Dequantize integers back to float: $\Delta \hat{\mathbf{w}}_t^k = q \cdot s$;
-    :Reconstruct full dimension vectors $\Delta \hat{\mathbf{w}}_t^k$;
-    :Execute FedAvg Weighted Parameter Aggregation:
-    $\mathbf{w}_{t+1} = \mathbf{w}_t + \sum_{k=1}^K \frac{|\mathcal{D}_k|}{|\mathcal{D}|} \Delta \hat{\mathbf{w}}_t^k$;
+partition "Reconstruction & Weighted Aggregation" {
+    :Decompress bitstream and unpack coordinate indices;
+    :Dequantize integers back to float tensor:\nΔ<b>ŵ</b><sub>t</sub><sup>k</sup> = q · s;
+    :Reconstruct full D-dimensional client update Δ<b>ŵ</b><sub>t</sub><sup>k</sup>;
+    :Execute FedAvg Parameter Aggregation:\n<b>w</b><sub>t+1</sub> = <b>w</b><sub>t</sub> + Σ<sub>k</sub> (|D<sub>k</sub>| / |D|) · Δ<b>ŵ</b><sub>t</sub><sup>k</sup>;
 }
 
-:Broadcast updated global weights $\mathbf{w}_{t+1}$ to clients;
+:Broadcast updated global model <b>w</b><sub>t+1</sub> to clients;
 stop
 
 @enduml
