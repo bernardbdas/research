@@ -7,7 +7,7 @@ $recorder = 1;
 $bibtex_use = 2;
 
 # Automatically build main.tex by default
-@default_files = ('main.tex');
+@default_files = ('architecture-guide.tex');
 
 # File extensions to clean up with latexmk -c
 $clean_ext = 'aux fdb_latexmk fls log out toc synctex.gz';
