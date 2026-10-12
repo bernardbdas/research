@@ -90,14 +90,9 @@ def train_federated(
 
     is_cifar = "cifar" in dataset_name.lower()
     if model is None:
-        if is_cifar:
-            from models.resnet import ResNet50
+        from models.simple_cnn import SimpleCNN
 
-            model = ResNet50(num_classes=10)
-        else:
-            from models.vgg import VGG16
-
-            model = VGG16(num_classes=10)
+        model = SimpleCNN(num_classes=10)
 
     # 1. Extract client data partitions
     img_key = "img" if is_cifar else "image"
