@@ -28,13 +28,11 @@ def configure_hf_cache_dir() -> Path:
     raw_dir.mkdir(parents=True, exist_ok=True)
     hub_dir = (raw_dir / "hub").resolve()
     hub_dir.mkdir(parents=True, exist_ok=True)
-    torch_dir = (raw_dir / "torch").resolve()
 
     os.environ["HF_HOME"] = str(raw_dir)
     os.environ["HF_DATASETS_CACHE"] = str(raw_dir)
     os.environ["HUGGINGFACE_HUB_CACHE"] = str(hub_dir)
     os.environ["HF_HUB_CACHE"] = str(hub_dir)
-    os.environ["TORCH_HOME"] = str(torch_dir)
     os.environ["HUGGINGFACE_ASSETS_CACHE"] = str((raw_dir / "assets").resolve())
 
     # Patch already-imported module configs if any
