@@ -1,4 +1,4 @@
-"""Utility modules for data management, metrics, augmentation, and preprocessing."""
+"""Utility modules for data management, metrics, augmentation, preprocessing, and inference."""
 
 from utils.augmentation import (
     CIFAR10_MEAN,
@@ -29,8 +29,19 @@ from utils.data_processing import (
     prepare_modality_datasets,
     resolve_dataset_name,
 )
+from utils.inference import (
+    CIFAR10_CLASSES,
+    MNIST_CLASSES,
+    get_class_names,
+    plot_prediction_confidence_bars,
+    plot_sample_classifications,
+    predict_with_confidence,
+    prepare_display_image,
+    unpack_history_and_params,
+)
 
 __all__ = [
+    "CIFAR10_CLASSES",
     "CIFAR10_MEAN",
     "CIFAR10_STD",
     "DATASET_ALIASES",
@@ -39,6 +50,7 @@ __all__ = [
     "DATASET_TO_MODALITY",
     "DatasetPaths",
     "HF_MODERN_MIRRORS",
+    "MNIST_CLASSES",
     "augment_cifar10_batch",
     "clean_dataset_data",
     "clean_modality_data",
@@ -46,6 +58,7 @@ __all__ = [
     "clean_raw_data",
     "configure_hf_cache_dir",
     "create_cosine_schedule",
+    "get_class_names",
     "get_dataset_modality",
     "get_federated_dataset",
     "get_federated_dataset_from_parquet",
@@ -53,7 +66,12 @@ __all__ = [
     "list_supported_datasets",
     "load_processed_dataset",
     "normalize_cifar10",
+    "plot_prediction_confidence_bars",
+    "plot_sample_classifications",
+    "predict_with_confidence",
+    "unpack_history_and_params",
     "prepare_and_save_dataset",
+    "prepare_display_image",
     "prepare_modality_datasets",
     "resolve_dataset_name",
 ]
