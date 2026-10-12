@@ -95,13 +95,12 @@ def train_federated(
         model = SimpleCNN(num_classes=10)
 
     # 1. Extract client data partitions
-    img_key = "img" if is_cifar else "image"
     client_data: list[tuple[jnp.ndarray, jnp.ndarray]] = []
     client_weights: list[float] = []
 
     for i in range(num_clients):
         part = fds.load_partition(i, split="train")
-        cx, cy = extract_partition_arrays(part, img_key, max_client_samples)
+        cx, cy = extract_partition_arrays(part, max_samples=max_client_samples)
         if is_cifar:
             from utils.augmentation import normalize_cifar10
 
@@ -111,7 +110,7 @@ def train_federated(
 
     # 2. Load centralized evaluation test split
     test_ds = load_processed_dataset(dataset_name, split="test")
-    test_x, test_y = extract_partition_arrays(test_ds, img_key, max_test_samples)
+    test_x, test_y = extract_partition_arrays(test_ds, max_samples=max_test_samples)
     if is_cifar:
         from utils.augmentation import normalize_cifar10
 
