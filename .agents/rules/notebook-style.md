@@ -33,6 +33,17 @@ When creating or editing Jupyter Notebooks (`.ipynb`) in this repository:
    - Keep code cells focused: one logical operation per cell.
    - Display summaries or inspect outputs directly (`df.head()`, `summary_df`).
 
+1. **No Custom Class Definitions in Notebooks (Strict Rule)**:
+
+   - Never define custom helper classes, algorithms, cryptosystems, or model
+     architectures directly inside `.ipynb` notebook cells.
+   - All classes and reusable utilities must reside in their dedicated Python modules
+     under the source packages (`federated/`, `models/`, `utils/`).
+   - Notebooks must import these custom classes and functions individually from their
+     implementations under the source tree.
+   - Notebook cells should focus strictly on orchestrating workflows, executing
+     experiments, inspecting outputs, and visualizing results.
+
 1. **Environment & Imports**:
 
    - Cell 0 loads environment: `load_dotenv(find_dotenv("local.env"))`.
