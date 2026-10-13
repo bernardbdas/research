@@ -154,3 +154,4 @@ Thumbs.db
 *.idx
 *.ilg
 *.ind
+artifacts/
