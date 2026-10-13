@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 
+from federated.training.dataset import extract_partition_arrays
 from utils.augmentation.normalization import CIFAR10_MEAN, CIFAR10_STD
 
 MNIST_CLASSES = [str(i) for i in range(10)]
@@ -125,6 +126,7 @@ def plot_sample_classifications(
     is_cifar: bool = False,
     title: str = "Real-Time Validation Sample Classifications & Confidence Scores",
     figsize: tuple[int, int] | None = None,
+    fontsize: float = 7.5,
 ) -> plt.Figure:
     """Plot real test set images with model predictions, confidence scores, and accuracy checks.
 
@@ -188,7 +190,7 @@ def plot_sample_classifications(
             mark = "✓" if is_correct else "✗"
             text_lines.append(f"{model_name}: {pred_name} ({conf_pct:4.1f}%) {mark}")
 
-        ax.set_title("\n".join(text_lines), fontsize=9, pad=8)
+        ax.set_title("\n".join(text_lines), fontsize=fontsize, pad=6)
 
     plt.tight_layout()
     return fig
@@ -274,3 +276,45 @@ def plot_prediction_confidence_bars(
 
     plt.tight_layout()
     return fig
+
+
+def extract_sequence_samples(
+    dataset: Any,
+    target_sequence: list[int] | str = "2490031",
+    label_key: str = "label",
+) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """Extract sample images matching a specific digit sequence (e.g. register number).
+
+    Parameters
+    ----------
+    dataset : Any
+        Hugging Face or Flower dataset split.
+    target_sequence : list[int] | str
+        Sequence of digits to extract in order (e.g. 2490031 or [2, 4, 9, 0, 0, 3, 1]).
+    label_key : str
+        Label column name. Default is label.
+
+    Returns
+    -------
+    tuple[jnp.ndarray, jnp.ndarray]
+        Normalized image array of shape (len(sequence), H, W, C) and ground truth integer labels.
+    """
+    if isinstance(target_sequence, str):
+        target_digits = [int(c) for c in target_sequence if c.isdigit()]
+    else:
+        target_digits = [int(x) for x in target_sequence]
+
+    indices: list[int] = []
+    used_indices: set[int] = set()
+    labels = dataset[label_key]
+
+    for digit in target_digits:
+        for idx, lbl in enumerate(labels):
+            if int(lbl) == digit and idx not in used_indices:
+                indices.append(idx)
+                used_indices.add(idx)
+                break
+
+    sub = dataset.select(indices)
+    xs, ys = extract_partition_arrays(sub, max_samples=len(target_digits))
+    return xs, ys
