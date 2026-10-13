@@ -1,6 +1,7 @@
-"""Model backbones and architectures for Federated Learning in Flax/JAX."""
+"""Model backbones, architectures, and checkpointing for Federated Learning in Flax/JAX."""
 
 from models.alexnet import AlexNet
+from models.checkpointing import load_model_checkpoint, save_model_checkpoint
 from models.common import count_parameters
 from models.densenet import DenseNet, DenseNet169
 from models.googlenet import GoogLeNet
@@ -40,4 +41,6 @@ __all__ = [
     "count_parameters",
     "get_model",
     "list_models",
+    "load_model_checkpoint",
+    "save_model_checkpoint",
 ]

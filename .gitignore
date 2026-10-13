@@ -44,7 +44,8 @@ htmlcov/
 # ==========================================
 # Jupyter Notebooks
 # ==========================================
-.ipynb_checkpoints/
+.ipynb_checkpoints/*
+!checkpoints/.gitkeep
 */.ipynb_checkpoints/*
 
 # ==========================================
@@ -79,7 +80,8 @@ data/processed/*
 
 # Cache & tracking directories
 datasets/
-checkpoints/
+checkpoints/*
+!checkpoints/.gitkeep
 logs/
 runs/
 wandb/
@@ -101,6 +103,7 @@ hf_cache/
 *.safetensors
 *.npy
 *.npz
+*.msgpack
 
 # ==========================================
 # Environment Variables & Secrets
