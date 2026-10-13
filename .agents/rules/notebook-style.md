@@ -59,3 +59,12 @@ When creating or editing Jupyter Notebooks (`.ipynb`) in this repository:
    - Use `get_federated_dataset()` or `prepare_and_save_dataset()` from
      `utils.data_processing`.
    - Never allow downloads to default to `~/.cache`.
+
+1. **Mandatory End-to-End Notebook Execution & Verification (Strict Rule)**:
+
+   - Always execute the whole notebook from start to finish (e.g. using a headless test
+     run or cell-by-cell execution) to verify that every cell runs with zero errors.
+   - Never present modified notebooks to the user without validating that the code
+     executes cleanly end-to-end.
+   - If any exception, syntax error, missing argument, or runtime bug is detected, fix
+     it autonomously and re-verify before finalizing the turn.

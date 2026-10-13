@@ -16,8 +16,8 @@ from utils.data_processing import load_processed_dataset
 
 
 def train_federated(
-    fds: FederatedDataset,
-    dataset_name: str,
+    fds: FederatedDataset | None = None,
+    dataset_name: str | None = None,
     aggregator: BaseAggregator | str = "fedavg",
     num_clients: int | None = None,
     rounds: int = 10,
@@ -26,6 +26,8 @@ def train_federated(
     batch_size: int = 64,
     lr: float = 1e-3,
     model: Any | None = None,
+    client_data: list[tuple[jnp.ndarray, jnp.ndarray]] | None = None,
+    test_data: tuple[jnp.ndarray, jnp.ndarray] | None = None,
     max_client_samples: int = 1000,
     max_test_samples: int = 1000,
     seed: int = 42,
@@ -82,39 +84,51 @@ def train_federated(
         rounds = num_rounds
 
     if num_clients is None:
-        if hasattr(fds, "partitioners") and "train" in fds.partitioners:
+        if client_data is not None:
+            num_clients = len(client_data)
+        elif hasattr(fds, "partitioners") and "train" in fds.partitioners:
             part = fds.partitioners["train"]
             num_clients = getattr(part, "num_partitions", 5)
         else:
             num_clients = 5
 
-    is_cifar = "cifar" in dataset_name.lower()
+    ds_name = (dataset_name or "").lower()
+    is_cifar = "cifar" in ds_name
     if model is None:
         from models.simple_cnn import SimpleCNN
 
         model = SimpleCNN(num_classes=10)
 
-    # 1. Extract client data partitions
-    client_data: list[tuple[jnp.ndarray, jnp.ndarray]] = []
-    client_weights: list[float] = []
+    # 1. Extract client data partitions (or reuse pre-extracted partitions)
+    if client_data is not None:
+        client_weights = [float(len(cx)) for cx, _ in client_data]
+    else:
+        if fds is None:
+            raise ValueError("Either fds or client_data must be provided.")
+        client_data = []
+        client_weights = []
+        for i in range(num_clients):
+            part = fds.load_partition(i, split="train")
+            cx, cy = extract_partition_arrays(part, max_samples=max_client_samples)
+            if is_cifar:
+                from utils.augmentation import normalize_cifar10
 
-    for i in range(num_clients):
-        part = fds.load_partition(i, split="train")
-        cx, cy = extract_partition_arrays(part, max_samples=max_client_samples)
+                cx = jnp.array(normalize_cifar10(np.array(cx)))
+            client_data.append((cx, cy))
+            client_weights.append(float(len(cx)))
+
+    # 2. Load centralized evaluation test split (or reuse pre-extracted test split)
+    if test_data is not None:
+        test_x, test_y = test_data
+    else:
+        if not dataset_name:
+            raise ValueError("Either dataset_name or test_data must be provided.")
+        test_ds = load_processed_dataset(dataset_name, split="test")
+        test_x, test_y = extract_partition_arrays(test_ds, max_samples=max_test_samples)
         if is_cifar:
             from utils.augmentation import normalize_cifar10
 
-            cx = jnp.array(normalize_cifar10(np.array(cx)))
-        client_data.append((cx, cy))
-        client_weights.append(float(len(cx)))
-
-    # 2. Load centralized evaluation test split
-    test_ds = load_processed_dataset(dataset_name, split="test")
-    test_x, test_y = extract_partition_arrays(test_ds, max_samples=max_test_samples)
-    if is_cifar:
-        from utils.augmentation import normalize_cifar10
-
-        test_x = jnp.array(normalize_cifar10(np.array(test_x)))
+            test_x = jnp.array(normalize_cifar10(np.array(test_x)))
 
     # 3. Initialize global model parameters
     key = jax.random.PRNGKey(seed)
