@@ -31,7 +31,9 @@ from utils.data_processing import (
 )
 from utils.inference import (
     CIFAR10_CLASSES,
+    FASHION_MNIST_CLASSES,
     MNIST_CLASSES,
+    USPS_CLASSES,
     get_class_names,
     plot_prediction_confidence_bars,
     plot_sample_classifications,
@@ -49,8 +51,10 @@ __all__ = [
     "DATASET_DEFAULT_CONFIGS",
     "DATASET_TO_MODALITY",
     "DatasetPaths",
+    "FASHION_MNIST_CLASSES",
     "HF_MODERN_MIRRORS",
     "MNIST_CLASSES",
+    "USPS_CLASSES",
     "augment_cifar10_batch",
     "clean_dataset_data",
     "clean_modality_data",
@@ -69,9 +73,9 @@ __all__ = [
     "plot_prediction_confidence_bars",
     "plot_sample_classifications",
     "predict_with_confidence",
-    "unpack_history_and_params",
     "prepare_and_save_dataset",
     "prepare_display_image",
     "prepare_modality_datasets",
     "resolve_dataset_name",
+    "unpack_history_and_params",
 ]

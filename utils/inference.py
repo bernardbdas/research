@@ -10,6 +10,19 @@ import numpy as np
 from utils.augmentation.normalization import CIFAR10_MEAN, CIFAR10_STD
 
 MNIST_CLASSES = [str(i) for i in range(10)]
+USPS_CLASSES = [str(i) for i in range(10)]
+FASHION_MNIST_CLASSES = [
+    "T-shirt/top",
+    "Trouser",
+    "Pullover",
+    "Dress",
+    "Coat",
+    "Sandal",
+    "Shirt",
+    "Sneaker",
+    "Bag",
+    "Ankle boot",
+]
 CIFAR10_CLASSES = [
     "airplane",
     "automobile",
@@ -27,11 +40,28 @@ CIFAR10_CLASSES = [
 def get_class_names(dataset_name: str) -> list[str]:
     """Retrieve human-readable class names for canonical benchmark datasets."""
     name = dataset_name.lower()
+    if "fashion" in name:
+        return FASHION_MNIST_CLASSES
     if "cifar" in name:
         return CIFAR10_CLASSES
+    if "usps" in name:
+        return USPS_CLASSES
     if "mnist" in name:
         return MNIST_CLASSES
     return [str(i) for i in range(10)]
+
+
+def unpack_history_and_params(entry: Any) -> tuple[dict[str, Any], Any]:
+    """Extract history dictionary and model parameters from tuple or dict format.
+
+    Supports (history, params) 2-tuples, {'history': ..., 'params': ...} dictionaries,
+    or direct history dictionaries.
+    """
+    if isinstance(entry, tuple):
+        return entry[0], (entry[1] if len(entry) > 1 else None)
+    if isinstance(entry, dict) and "history" in entry:
+        return entry["history"], entry.get("params")
+    return entry, None
 
 
 def predict_with_confidence(
@@ -79,7 +109,7 @@ def prepare_display_image(img: np.ndarray, is_cifar: bool = False) -> np.ndarray
             arr = arr * CIFAR10_STD + CIFAR10_MEAN
         return np.clip(arr, 0.0, 1.0)
 
-    # Single-channel grayscale (e.g. MNIST)
+    # Single-channel grayscale (e.g. MNIST, Fashion-MNIST, USPS)
     if arr.ndim == 3 and arr.shape[-1] == 1:
         arr = np.squeeze(arr, axis=-1)
 
@@ -147,7 +177,6 @@ def plot_sample_classifications(
             class_names[true_lbl] if true_lbl < len(class_names) else str(true_lbl)
         )
 
-        # Build classification telemetry text for each model
         text_lines = [f"True: {true_name}"]
         for model_name, (preds, confs) in model_predictions.items():
             pred_lbl = int(preds[i])
@@ -245,16 +274,3 @@ def plot_prediction_confidence_bars(
 
     plt.tight_layout()
     return fig
-
-
-def unpack_history_and_params(entry: Any) -> tuple[dict[str, Any], Any]:
-    """Extract history dictionary and model parameters from tuple or dict format.
-
-    Supports (history, params) 2-tuples, {'history': ..., 'params': ...} dictionaries,
-    or direct history dictionaries.
-    """
-    if isinstance(entry, tuple):
-        return entry[0], (entry[1] if len(entry) > 1 else None)
-    if isinstance(entry, dict) and "history" in entry:
-        return entry["history"], entry.get("params")
-    return entry, None
