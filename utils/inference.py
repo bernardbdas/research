@@ -283,7 +283,7 @@ def extract_sequence_samples(
     target_sequence: list[int] | str = "2490031",
     label_key: str = "label",
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
-    """Extract sample images matching a specific digit sequence (e.g. register number).
+    """Extract sample images matching a specific digit sequence (e.g. target digit sequence).
 
     Parameters
     ----------

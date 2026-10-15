@@ -51,9 +51,6 @@ def create_notebook():
     md("""# **Experimental Setup #5: FedM3 vs. FedMuon & Baseline Optimizers**
 
 ### **Nested Federated Learning: A Multi-Scale Continuum Memory Framework**
-**Researcher:** Bernard Birendra Das (Register No. 2490031)
-**Department:** Statistics and Data Science, CHRIST (Deemed to be University), Bengaluru
-**Supervision:** Dr. Sathya P (Supervisor), Dr. Vijayalakshmi A, Dr. Senthil Vadivu M (RAC Members)
 **Experimental Focus:** Validating **FedM3 (Ours)** against **FedMuon**, **FedAdam**, **FedProx**, and **FedAvg** under non-IID Dirichlet distribution skew.
 
 ---
@@ -405,7 +402,7 @@ print(df_matrix.to_string(index=False))""")
 - **Q: Why does multi-scale momentum prevent orthogonalization overshoot?**
   **A:** In single-scale orthogonalization, when client drift is high, the momentum vector accumulates directions that are obsolete for newly sampled clients. Projecting an obsolete composite gradient onto the orthogonal Stiefel manifold normalizes its step size to 1 along all singular vectors, causing large updates in erroneous directions. FedM3's fast/slow momentum blend dynamically discounts transient client drift while maintaining orthogonal step sizes along invariant singular vectors.
 
-### **Next Steps for RAC Presentation & Larger Machines**
+### **Next Steps for Larger Machines**
 1. **Medical Segmentation Decathlon**: Scale the `HOPE-FL` and `FedM3` framework to 3D volumetric medical segmentation as outlined in Secondary Objective SO 3.
 2. **Extreme Heterogeneity Benchmark**: Evaluate under Dirichlet $\\alpha = 0.1$ and non-stationary streaming client arrival.
 3. **Cryptographic Co-design**: Combine FedM3 with Paillier homomorphic encryption and SMPC secret sharing developed in Volume II.""")

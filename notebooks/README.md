@@ -76,7 +76,7 @@ partitions diverge, and how standard aggregation operates.*
   - **Focus**: Investigates client drift under non-identical data distributions
     ($\\alpha=0.5$). Demonstrates local minima divergence where local optimizers pull
     client parameters away from the global stationary point. Evaluated on digit
-    classification with Register No. 2490031 across MNIST and USPS.
+    classification on target digit sequence [2, 4, 9, 0, 0, 3, 1] across MNIST and USPS.
   - **Literature Citation**:
     - Karimireddy, S. P., Kale, S., Mohri, M., Reddi, S., Stich, S., & Suresh, A. T.
       (2020). *SCAFFOLD: Stochastic Controlled Averaging for Federated Learning*. In
@@ -90,7 +90,7 @@ partitions diverge, and how standard aggregation operates.*
   - **Focus**: Empirical evaluation of dynamic aggregation algorithms (FedAvg, FedProx
     with proximal regularization $\\mu$, FedMedian for Byzantine robustness, and
     FedMuon). Assesses accuracy, convergence rates, Pareto efficiency, and inference
-    validation on Register No. 2490031.
+    validation on target digit sequence [2, 4, 9, 0, 0, 3, 1].
   - **Literature Citation**:
     - Li, T., Sahu, A. K., Zaheer, M., Sanjabi, M., Talwalkar, A., & Smith, V. (2020).
       *Federated Optimization in Heterogeneous Networks (FedProx)*. In Proceedings of

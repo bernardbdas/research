@@ -1,6 +1,6 @@
 # PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2026 Bernard Birendra Das
+Copyright (c) 2026 The Authors
 
 ## Purpose
 

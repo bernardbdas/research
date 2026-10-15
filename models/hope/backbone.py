@@ -6,7 +6,7 @@ vision feature representations.
 
 References
 ----------
-1. Das, B. B. (2026). FedM3: Federated Multi-scale Momentum Muon Optimization with
+1. FedM3: Federated Multi-scale Momentum Muon Optimization with
    Continuous Memory Systems and HOPE-FL.
 2. Behrouz, A., et al. (2024). Titans: Learning to Memorize at Test Time. arXiv:2412.20231.
 3. HOPE: Higher-Order Predictive Memory & Continuum Learning (Google DeepMind, 2025).

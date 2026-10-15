@@ -6,7 +6,7 @@ federated learning.
 
 References
 ----------
-1. FedM3 Framework (Das, 2026): Decentralized Foundation Architecture with Continuous
+1. FedM3 Framework: Decentralized Foundation Architecture with Continuous
    Memory System (CMS), HOPE-FL, and Federated Multi-scale Momentum Muon Optimization.
 2. Takezawa, Y., et al. (2025). FedMuon: Federated Learning with Bias-corrected
    LMO-based Optimization. arXiv:2502.14815.
