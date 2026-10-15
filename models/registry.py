@@ -5,6 +5,7 @@ import flax.linen as nn
 from models.alexnet import AlexNet
 from models.densenet import DenseNet169
 from models.googlenet import GoogLeNet
+from models.hope import HOPEFLNet
 from models.inception import InceptionV3
 from models.mobilenet import MobileNetV2
 from models.resnet import ResNet9, ResNet18, ResNet50
@@ -52,6 +53,10 @@ MODEL_REGISTRY: dict[str, type[nn.Module]] = {
     "ttt": VisionTTT,
     "vision_ttt": VisionTTT,
     "ttt_linear": VisionTTT,
+    "hope_fl": HOPEFLNet,
+    "hopefl": HOPEFLNet,
+    "hope": HOPEFLNet,
+    "fedm3_net": HOPEFLNet,
 }
 
 
@@ -61,7 +66,7 @@ def get_model(name: str, num_classes: int = 10, **kwargs) -> nn.Module:
     Parameters
     ----------
     name : str
-        Name of the model (e.g. 'simple_cnn', 'resnet18', 'mobilenetv2', 'vgg16').
+        Name of the model (e.g. 'simple_cnn', 'resnet18', 'hope_fl', 'titans').
     num_classes : int
         Number of output classes. Default is 10.
     **kwargs : Any
@@ -114,4 +119,5 @@ def list_models() -> list[str]:
         "vit",
         "titans",
         "ttt",
+        "hope_fl",
     ]

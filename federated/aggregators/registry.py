@@ -42,11 +42,11 @@ def get_aggregator(
     Parameters
     ----------
     aggregator : BaseAggregator | str | None
-        An aggregator instance or strategy name (e.g. 'fedavg', 'fedprox', 'fedmedian', 'fedadam').
+        An aggregator instance or strategy name (e.g. 'fedavg', 'fedprox', 'fedmedian', 'fedadam', 'fedmuon', 'fedm3').
         Defaults to FedAvg() if None.
     **kwargs : Any
         Hyperparameters passed to the aggregator constructor (e.g. mu=0.01 for FedProx,
-        beta=0.1 for FedTrimmedMean, eta=0.05 for FedAdam).
+        beta=0.1 for FedTrimmedMean, eta=0.05 for FedAdam, gamma=0.6 for FedM3).
 
     Returns
     -------
@@ -84,6 +84,7 @@ def list_aggregators() -> list[str]:
         "fedtrimmedmean",
         "fedadam",
         "fedmuon",
+        "fedm3",
     ]
     seen_classes = set()
     result = []

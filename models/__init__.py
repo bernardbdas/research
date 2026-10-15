@@ -5,6 +5,7 @@ from models.checkpointing import load_model_checkpoint, save_model_checkpoint
 from models.common import count_parameters
 from models.densenet import DenseNet, DenseNet169
 from models.googlenet import GoogLeNet
+from models.hope import ContinuousMemorySystem, HOPEFLNet
 from models.inception import InceptionV3
 from models.mobilenet import MobileNetV2
 from models.registry import MODEL_REGISTRY, get_model, list_models
@@ -18,9 +19,11 @@ from models.vit import VisionTransformer, ViTSmall, ViTTiny
 
 __all__ = [
     "AlexNet",
+    "ContinuousMemorySystem",
     "DenseNet",
     "DenseNet169",
     "GoogLeNet",
+    "HOPEFLNet",
     "InceptionV3",
     "MODEL_REGISTRY",
     "MobileNetV2",
