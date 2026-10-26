@@ -1,0 +1,89 @@
+@startuml fl_system_overview
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam ranksep 40
+skinparam nodesep 28
+
+' Palette: Professional Academic High-Contrast
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #1E293B
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 12
+}
+
+skinparam card {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    BorderThickness 1.2
+}
+
+skinparam database {
+    BackgroundColor #F1F5F9
+    BorderColor #0F172A
+    BorderThickness 1.2
+}
+
+skinparam cloud {
+    BackgroundColor #EFF6FF
+    BorderColor #2563EB
+    BorderThickness 1.3
+}
+
+skinparam arrow {
+    Color #1E293B
+    Thickness 1.3
+}
+
+' ========================================================
+' TIER 1: CENTRAL SERVER COORDINATOR (Flower ServerApp)
+' ========================================================
+package "Tier 1: Central Server Coordinator (Flower ServerApp)" as Server #FFFFFF {
+    card "<b>Global Model Registry</b>\n* Canonical parameters <b>w</b><sub>t</sub> (HOPE-FL, SimpleCNN, Titans)\n* Checkpointing in checkpoints/ & evaluation" as S_Model #F8FAFC
+    card "<b>Client Manager & Cohort Selector</b>\n* Samples active cohort S<sub>t</sub> ⊂ {1, ..., K}\n* Tracks client availability & Non-IID variance" as S_Selector #F8FAFC
+    card "<b>Advanced Aggregator Engine (FedM3 / FedMuon / FedAvg)</b>\n* <b>FedM3</b>: Dual-scale momentum (β<sub>fast</sub>, β<sub>slow</sub>) + Polar LMO\n* <b>Newton-Schulz</b>: 5-step matrix polar orthogonalization\n* <b>Consensus step</b>: <b>w</b><sub>t+1</sub> = <b>w</b><sub>t</sub> - η · <b>O</b><sub>t</sub>" as S_Agg #EFF6FF
+
+    S_Model -right-> S_Selector : Global Weights <b>w</b><sub>t</sub>
+    S_Selector -right-> S_Agg : Sampled cohort S<sub>t</sub>
+}
+
+' ========================================================
+' TIER 2: SECURE TRANSPORT CHANNEL (gRPC / TLS / Privacy)
+' ========================================================
+cloud "<b>Tier 2: Secure Parameter Transport & Defense-in-Depth Layer</b>\n<i>Model parameters only • Raw user data never leaves edge silos (Zero Data Leakage)\nOptional Cryptographic Defenses: SecAgg SMPC (Zero-Sum Masking) • Paillier Homomorphic Encryption</i>" as Transport
+
+' ========================================================
+' TIER 3: FEDERATED EDGE CLIENT (Flower ClientApp)
+' ========================================================
+package "Tier 3: Federated Edge Client k ∈ {1, ..., K} (Flower ClientApp)" as Client #FFFFFF {
+    database "<b>Private Local Dataset D<sub>k</sub></b>\n* Strictly on-device storage in data/raw/\n* Non-IID partitions: Dirichlet (α=0.5) / Pathological" as C_Data #F1F5F9
+    card "<b>Local JAX/Flax Neural Engine</b>\n* <b>HOPE-FL</b> Trunk + Continuous Memory System (CMS)\n* Forward surprise adaptation: <b>M</b><sub>t</sub> = α<sub>t</sub><b>M</b><sub>t-1</sub> + η<sub>mem</sub>(<b>k</b><sub>t</sub><sup>T</sup>⊗<b>S</b><sub>t</sub>)\n* Backward loss autodiff: Optax AdamW / SGD" as C_Train #F0FDF4
+    card "<b>Differential Privacy Engine</b>\n* DP-SGD: Per-sample gradient clipping (norm C)\n* Calibrated Gaussian noise addition: N(0, σ²C²I)\n* Rényi Differential Privacy (RDP) accountant" as C_Priv #FFF7ED
+    card "<b>ClientApp Interface</b>\n* Ingests global weights <b>w</b><sub>t</sub>\n* Encodes parameter delta Δ<b>w</b><sub>t</sub><sup>k</sup>" as C_App #F8FAFC
+
+    C_Data -right-> C_Train : Mini-batches
+    C_Train -right-> C_Priv : Local updates
+    C_Priv -right-> C_App : Masked / clipped delta Δ<b>w</b><sub>t</sub><sup>k</sup>
+}
+
+' ========================================================
+' INTER-TIER FLOW
+' ========================================================
+Server -[hidden]down-> Transport
+Transport -[hidden]down-> Client
+
+' Downlink flow (Server -> Network -> Client)
+S_Selector -down-> Transport : <b>[Downlink]</b> Broadcast global weights <b>w</b><sub>t</sub>
+Transport -down-> C_App : Receive <b>w</b><sub>t</sub>
+
+' Uplink flow (Client -> Network -> Server)
+C_App -up-> Transport : <b>[Uplink]</b> Transmit delta Δ<b>w</b><sub>t</sub><sup>k</sup>
+Transport -up-> S_Agg : Deliver updates to FedM3 aggregator
+
+@enduml

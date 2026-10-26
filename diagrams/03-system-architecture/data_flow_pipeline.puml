@@ -1,0 +1,78 @@
+@startuml data_flow_pipeline
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam linetype ortho
+
+skinparam component {
+    BackgroundColor #F8FAFC
+    BorderColor #1E293B
+    BorderThickness 1.2
+}
+
+skinparam database {
+    BackgroundColor #EFF6FF
+    BorderColor #1E293B
+    BorderThickness 1.2
+}
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #3B82F6
+    BorderThickness 1.2
+}
+
+cloud "Remote Dataset Repositories\n(Hugging Face Hub / Torchvision)" as HFHub
+
+package "Local Data Storage Layer" as Storage {
+    folder "data/raw/<dataset>/\n(Arrow Raw Download Cache)" as RawCache
+
+    package "data/processed/<dataset>/\n(High-Performance Apache Parquet)" as ProcessedDir {
+        database "train.parquet\n(e.g., 45,000 samples / 90%)" as TrainParquet
+        database "val.parquet\n(e.g., 5,000 samples / 10%)" as ValParquet
+        database "test.parquet\n(e.g., 10,000 samples / Test)" as TestParquet
+    }
+}
+
+component "Preprocessing Engine\n(utils.prepare_and_save_dataset)" as PrepEngine
+
+component "Flower FederatedDataset\n(flwr_datasets Engine)" as FlowerFDS
+
+package "Federated Partitioning Schemes" as PartScheme {
+    component "IidPartitioner\n(Uniform Random Distribution)" as IID
+    component "DirichletPartitioner\n(Heterogeneous Skew: Dir(α))" as NonIID
+}
+
+package "Simulated Federated Edge Clients" as Clients {
+    database "Client 0 Partition (D₀)" as C0
+    database "Client 1 Partition (D₁)" as C1
+    database "Client K-1 Partition (D<sub>K-1</sub>)" as CK
+}
+
+component "Central Evaluation Loop\n(Benchmark Accuracy)" as CentralEval
+
+' Data flow routing
+HFHub -down-> PrepEngine : Download Raw Split
+PrepEngine -down-> RawCache : Cache Raw Bytes
+PrepEngine -down-> TrainParquet : Export Cleaned Parquet
+PrepEngine -down-> ValParquet : Export Cleaned Parquet
+PrepEngine -down-> TestParquet : Export Cleaned Parquet
+
+TrainParquet -down-> FlowerFDS : Ingest Training Data
+FlowerFDS --> IID : IID Mode
+FlowerFDS --> NonIID : Non-IID Mode
+
+IID -down-> C0 : Balanced Split
+IID -down-> C1 : Balanced Split
+IID -down-> CK : Balanced Split
+
+NonIID -down-> C0 : Skewed Distribution
+NonIID -down-> C1 : Skewed Distribution
+NonIID -down-> CK : Skewed Distribution
+
+ValParquet -down-> CentralEval : Validation & Tuning
+TestParquet -down-> CentralEval : Generalization Test
+
+@enduml

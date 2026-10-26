@@ -1,0 +1,96 @@
+@startuml fedm3_architecture
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam ranksep 35
+skinparam nodesep 25
+
+' Publication Palette: High-Contrast Modern Academic Colors
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #1E293B
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 12
+}
+
+skinparam card {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    BorderThickness 1.2
+}
+
+skinparam arrow {
+    Color #1E293B
+    Thickness 1.3
+}
+
+' ========================================================
+' TIER 1: DECENTRALIZED CLIENT COHORT (Non-IID Partitions)
+' ========================================================
+package "Tier 1: Decentralized Edge Clients (Heterogeneous Local Drift)" as Clients #F1F5F9 {
+    card "<b>Client 1 (Silo α=0.5)</b>\n* Local SGD on Dataset D<sub>1</sub>\n* Update: ΔW<sub>t</sub><sup>(1)</sup>" as C1 #FFFFFF
+    card "<b>Client 2 (Silo α=0.5)</b>\n* Local SGD on Dataset D<sub>2</sub>\n* Update: ΔW<sub>t</sub><sup>(2)</sup>" as C2 #FFFFFF
+    card "<b>Client K (Silo α=0.5)</b>\n* Local SGD on Dataset D<sub>K</sub>\n* Update: ΔW<sub>t</sub><sup>(K)</sup>" as CK #FFFFFF
+}
+
+' ========================================================
+' TIER 2: SERVER AGGREGATION & DELTA ESTIMATION
+' ========================================================
+package "Tier 2: Server Parameter Gathering" as Gathering #EFF6FF {
+    card "<b>Weighted Gradient Aggregation</b>\nΔW<sub>t</sub> = Σ<sub>k=1</sub><sup>K</sup> (|D<sub>k</sub>| / |D|) · ΔW<sub>t</sub><sup>(k)</sup>\n<i>(Captures raw aggregated descent direction)</i>" as AggDelta #FFFFFF
+
+    C1 --> AggDelta : ΔW<sub>t</sub><sup>(1)</sup>
+    C2 --> AggDelta : ΔW<sub>t</sub><sup>(2)</sup>
+    CK --> AggDelta : ΔW<sub>t</sub><sup>(K)</sup>
+}
+
+' ========================================================
+' TIER 3: FEDM3 DUAL-SCALE MOMENTUM ENGINE
+' ========================================================
+package "Tier 3: FedM3 Multi-Scale Temporal Momentum Engine" as MomentumEngine #F0FDF4 {
+    card "<b>Fast Momentum Buffer (β<sub>fast</sub> = 0.80)</b>\n<b>V</b><sub>fast, t</sub> = β<sub>fast</sub> <b>V</b><sub>fast, t-1</sub> + (1 - β<sub>fast</sub>) ΔW<sub>t</sub>\n<i>Tracks rapid, high-frequency client drift</i>" as FastBuf #EFF6FF
+
+    card "<b>Slow Manifold Buffer (β<sub>slow</sub> = 0.98)</b>\n<b>V</b><sub>slow, t</sub> = β<sub>slow</sub> <b>V</b><sub>slow, t-1</sub> + (1 - β<sub>slow</sub>) ΔW<sub>t</sub>\n<i>Anchors low-frequency global curvature</i>" as SlowBuf #FFF7ED
+
+    card "<b>Convex Momentum Blending (γ = 0.60)</b>\n<b>M</b><sub>t</sub> = γ · <b>V</b><sub>fast, t</sub> + (1 - γ) · <b>V</b><sub>slow, t</sub>\n<i>Resolves stability-plasticity dilemma</i>" as Blending #FFFFFF
+
+    card "<b>Nesterov Lookahead Acceleration</b>\n<b>G</b><sub>t</sub> = <b>M</b><sub>t</sub> + β<sub>fast</sub> (<b>M</b><sub>t</sub> - <b>M</b><sub>t-1</sub>)" as Nesterov #F5F3FF
+
+    AggDelta -down-> FastBuf : Local Gradient ΔW<sub>t</sub>
+    AggDelta -down-> SlowBuf : Local Gradient ΔW<sub>t</sub>
+
+    FastBuf -down-> Blending : Fast drift vector
+    SlowBuf -down-> Blending : Consensus manifold
+    Blending -down-> Nesterov : Blended direction <b>M</b><sub>t</sub>
+}
+
+' ========================================================
+' TIER 4: MATRIX POLAR ORTHOGONALIZATION (NEWTON-SCHULZ)
+' ========================================================
+package "Tier 4: Polar Orthogonalization on Stiefel Manifold" as Orthogonalization #FAF5FF {
+    card "<b>Quintic Newton-Schulz Iteration (5 Steps)</b>\nFor Matrix Parameters (dim ≥ 2):\n<b>X</b><sub>0</sub> = <b>G</b><sub>t</sub> / ||<b>G</b><sub>t</sub>||<sub>F</sub>\n<b>X</b><sub>k+1</sub> = <b>X</b><sub>k</sub> (a<b>I</b> + b<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub> + c(<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub>)<sup>2</sup>)\n<i>Projects onto unit singular-value polar factor (U V<sup>T</sup>)</i>" as NewtonSchulz #FFFFFF
+
+    card "<b>1D Parameter Handler (Adam / RMSProp)</b>\nFor Bias Vectors and LayerNorm Scales:\nAdaptive second-moment coordinate scaling" as VectorAdam #F8FAFC
+
+    Nesterov -down-> NewtonSchulz : 2D Matrix Parameters
+    Nesterov -down-> VectorAdam : 1D Vectors
+}
+
+' ========================================================
+' TIER 5: GLOBAL CONSENSUS UPDATE & BROADCAST
+' ========================================================
+package "Tier 5: Global Consensus Weight Update" as Consensus #ECFDF5 {
+    card "<b>Consensus Weight Step (Eliminates Overshoot)</b>\n<b>W</b><sub>t+1</sub> = <b>W</b><sub>t</sub> - η · <b>O</b><sub>t</sub> - λ · <b>W</b><sub>t</sub>\n* η: Server Learning Rate\n* λ: Decoupled Weight Decay" as StepUpdate #FFFFFF
+
+    NewtonSchulz -down-> StepUpdate : Orthogonalized Update <b>O</b><sub>t</sub>
+    VectorAdam -down-> StepUpdate : Normalized Update
+}
+
+StepUpdate -left-> Clients : Broadcast Consensus Model <b>W</b><sub>t+1</sub> for Round t+1
+
+@enduml

@@ -1,0 +1,75 @@
+@startuml client_execution_lifecycle
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam ActivityBorderColor #1E293B
+skinparam ActivityBackgroundColor #F8FAFC
+skinparam ActivityDiamondBorderColor #1E293B
+skinparam ActivityDiamondBackgroundColor #F1F5F9
+skinparam ArrowColor #1E293B
+skinparam ArrowThickness 1.2
+
+start
+
+:Receive Server Invitation for Federated Round t;
+
+if (Selected by Server ClientManager?) then (yes)
+    :Download Current Global Weights <b>w</b><sub>t</sub>;
+    :Unpack serialized arrays into Flax PyTree parameter dict;
+    :Initialize Local Optax Optimizer State (AdamW / Muon);
+
+    if (Client Model has Continuous Memory System (CMS)?) then (yes)
+        :Initialize Fast-Weight Working Memory Matrix <b>M</b><sub>0</sub> = <b>0</b>;
+        :Configure Adaptive Retention Gate α<sub>t</sub> & Surprise Step η<sub>mem</sub>;
+    endif
+
+    repeat :For each Local Epoch e = 1, ..., E;
+        repeat :For each Mini-batch (X<sub>b</sub>, Y<sub>b</sub>) in local partition D<sub>k</sub>;
+            if (HOPE-FL Memory Augmentation Active?) then (yes)
+                :Extract Visual Embeddings x<sub>t</sub> from Conv Trunk;
+                :Compute Projections: q<sub>t</sub> = x<sub>t</sub>W<sub>q</sub>,  k<sub>t</sub> = x<sub>t</sub>W<sub>k</sub>,  v<sub>t</sub> = x<sub>t</sub>W<sub>v</sub>;
+                :Detect Associative Surprise: S<sub>t</sub> = v<sub>t</sub> - k<sub>t</sub> <b>M</b><sub>t-1</sub>;
+                :Update Fast Weights: <b>M</b><sub>t</sub> = α<sub>t</sub> <b>M</b><sub>t-1</sub> + η<sub>mem</sub> (k<sub>t</sub><sup>T</sup> ⊗ S<sub>t</sub>);
+                :Read Associative Memory: r<sub>t</sub> = q<sub>t</sub> <b>M</b><sub>t</sub>;
+                :Fused Representation: y<sub>t</sub> = LayerNorm(W<sub>O</sub> r<sub>t</sub> + x<sub>t</sub>);
+                :Compute Task Loss ℒ(y<sub>t</sub>, Y<sub>b</sub>);
+            else (no)
+                :Standard Forward Pass & Loss ℒ(f(X<sub>b</sub>; <b>w</b>), Y<sub>b</sub>);
+            endif
+
+            if (Differential Privacy (DP-SGD) Enabled?) then (yes)
+                :Compute per-sample gradients in parallel:\n<b>g</b><sub>i</sub> = jax.vmap(jax.grad(loss_fn))(params, X<sub>b</sub>, Y<sub>b</sub>);
+                :Clip gradient norms to threshold C:\nḡ<sub>i</sub> = <b>g</b><sub>i</sub> · min(1, C / ||<b>g</b><sub>i</sub>||₂);
+                :Inject calibrated Gaussian noise:\ng̃ = (1/B) · [ Σ<sub>i=1</sub><sup>B</sup> ḡ<sub>i</sub> + 𝒩(0, σ² C² <b>I</b>) ];
+                :Update Privacy Accountant (accumulate spent (ε, δ));
+            else (no)
+                :Compute standard batch gradient:\n<b>g</b> = ∇<sub><b>w</b></sub> ℒ(<b>w</b>; X<sub>b</sub>, Y<sub>b</sub>);
+            endif
+
+            :Apply gradient updates to local slow weights via **Optax**:\nupdates, opt_state = optimizer.update(<b>g</b>, opt_state)\nparams = optax.apply_updates(params, updates);
+        repeat while (More mini-batches remaining in epoch?) is (yes)
+        ->no;
+    repeat while (More local epochs remaining?) is (yes)
+    ->no;
+
+    :Extract trained local weights <b>w</b><sub>t+1</sub><sup>k</sup> from PyTree;
+    :Calculate parameter delta:\nΔ<b>w</b><sub>t</sub><sup>k</sup> = <b>w</b><sub>t+1</sub><sup>k</sup> - <b>w</b><sub>t</sub>;
+
+    if (Communication Compression Enabled?) then (yes)
+        :Apply Top-K% Magnitude Sparsification;
+        :Apply Uniform Stochastic Quantization (FP32 -> INT8);
+        :Pack non-zero coordinates into compressed bitstream;
+    else (no)
+        :Maintain full-precision FP32 parameter arrays;
+    endif
+
+    :Transmit Update Δ<b>w</b><sub>t</sub><sup>k</sup> and Sample Count |D<sub>k</sub>| to Server;
+else (no)
+    :Remain in Low-Power Idle State for Round t;
+endif
+
+stop
+
+@enduml

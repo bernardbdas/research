@@ -1,0 +1,97 @@
+@startuml cms_architecture
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam ranksep 32
+skinparam nodesep 24
+
+' Publication Palette: High-Contrast Modern Academic Colors
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #1E293B
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 12
+}
+
+skinparam card {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    BorderThickness 1.2
+}
+
+skinparam arrow {
+    Color #1E293B
+    Thickness 1.3
+}
+
+' ========================================================
+' TIER 1: INPUT REPRESENTATION & LINEAR PROJECTIONS
+' ========================================================
+package "1. Input Representation & Linear Projections" as Projections #F8FAFC {
+    card "<b>Input Representation: x<sub>t</sub> ∈ ℝ<sup>D</sup></b>\n<i>(Feature vector from CNN trunk / Token embedding)</i>" as InputX #FFFFFF
+
+    card "<b>Query Projection</b>\n<b>q</b><sub>t</sub> = <b>x</b><sub>t</sub> <b>W</b><sub>Q</sub>\n<i>(Retrieval probe)</i>" as ProjQ #EFF6FF
+    card "<b>Key Projection</b>\n<b>k</b><sub>t</sub> = <b>x</b><sub>t</sub> <b>W</b><sub>K</sub>\n<i>(Associative address)</i>" as ProjK #EFF6FF
+    card "<b>Value Projection</b>\n<b>v</b><sub>t</sub> = <b>x</b><sub>t</sub> <b>W</b><sub>V</sub>\n<i>(Information content)</i>" as ProjV #EFF6FF
+
+    InputX -down-> ProjQ
+    InputX -down-> ProjK
+    InputX -down-> ProjV
+}
+
+' ========================================================
+' TIER 2: ASSOCIATIVE SURPRISE & EXPECTATION RETRIEVAL
+' ========================================================
+package "2. Memory Retrieval & Surprise Detection Loop" as SurpriseLoop #FFF7ED {
+    card "<b>Prior Continuous Memory State</b>\n<b>M</b><sub>t-1</sub> ∈ ℝ<sup>D<sub>k</sub> × D<sub>v</sub></sup>\n<i>(Accumulated historical associations)</i>" as PriorMem #FFFFFF
+
+    card "<b>Retrieved Expectation</b>\n<b>v̂</b><sub>t</sub> = <b>k</b><sub>t</sub> <b>M</b><sub>t-1</sub>\n<i>(Memory's prediction of incoming value)</i>" as RetExp #FFFFFF
+
+    card "<b>Associative Surprise Metric (Error Gradient)</b>\n<b>S</b><sub>t</sub> = <b>v</b><sub>t</sub> - <b>v̂</b><sub>t</sub>\n<i>(Discrepancy driving fast-weight adaptation)</i>" as Surprise #FEF2F2
+
+    ProjK -down-> RetExp : Address <b>k</b><sub>t</sub>
+    PriorMem -down-> RetExp : State <b>M</b><sub>t-1</sub>
+
+    ProjV -down-> Surprise : Ground truth <b>v</b><sub>t</sub>
+    RetExp -down-> Surprise : Prediction <b>v̂</b><sub>t</sub>
+}
+
+' ========================================================
+' TIER 3: ADAPTIVE RETENTION & FORWARD-PASS WEIGHT UPDATE
+' ========================================================
+package "3. Dynamic Self-Modification in Forward Pass" as UpdateLoop #F0FDF4 {
+    card "<b>Adaptive Forgetting Gate (Input-Dependent)</b>\nα<sub>t</sub> = σ(<b>x</b><sub>t</sub> <b>W</b><sub>α</sub> + b<sub>α</sub>) ∈ (0, 1)\n<i>(Dynamically modulates memory retention vs fade)</i>" as ForgetGate #EFF6FF
+
+    card "<b>Hebbian Associative Memory Gradient</b>\nΔ<b>M</b><sub>t</sub> = η<sub>mem</sub> · (<b>k</b><sub>t</sub><sup>T</sup> ⊗ <b>S</b><sub>t</sub>)\n<i>(Outer product associative write)</i>" as MemGrad #FFFFFF
+
+    card "<b>Updated Continuous Memory State</b>\n<b>M</b><sub>t</sub> = α<sub>t</sub> · <b>M</b><sub>t-1</sub> + Δ<b>M</b><sub>t</sub>\n<i>(Updated dynamically without backprop!)</i>" as NewMem #ECFDF5
+
+    InputX -down-> ForgetGate : Context <b>x</b><sub>t</sub>
+    Surprise -down-> MemGrad : Surprise <b>S</b><sub>t</sub>
+    ProjK -down-> MemGrad : Key <b>k</b><sub>t</sub>
+
+    PriorMem -down-> NewMem : Scale by α<sub>t</sub>
+    ForgetGate -down-> NewMem : Gate α<sub>t</sub>
+    MemGrad -down-> NewMem : Additive write Δ<b>M</b><sub>t</sub>
+}
+
+' ========================================================
+' TIER 4: ASSOCIATIVE READOUT & RESIDUAL RECONSTRUCTION
+' ========================================================
+package "4. Associative Readout & Residual Fusion" as Readout #FAF5FF {
+    card "<b>Associative Readout Extraction</b>\n<b>r</b><sub>t</sub> = <b>q</b><sub>t</sub> <b>M</b><sub>t</sub>\n<i>(Context-conditioned memory readout)</i>" as ReadoutVec #FFFFFF
+
+    card "<b>Output Projection & Residual Connection</b>\n<b>y</b><sub>t</sub> = LayerNorm(<b>r</b><sub>t</sub> <b>W</b><sub>O</sub> + <b>x</b><sub>t</sub>)\n<i>(Memory-augmented representation ready for classification)</i>" as OutputY #FFFFFF
+
+    ProjQ -down-> ReadoutVec : Query <b>q</b><sub>t</sub>
+    NewMem -down-> ReadoutVec : Updated State <b>M</b><sub>t</sub>
+    ReadoutVec -down-> OutputY : Memory readout <b>r</b><sub>t</sub>
+    InputX -down-> OutputY : Residual skip <b>x</b><sub>t</sub>
+}
+
+@enduml

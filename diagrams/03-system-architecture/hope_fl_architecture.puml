@@ -1,0 +1,90 @@
+@startuml hope_fl_architecture
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam ranksep 32
+skinparam nodesep 24
+
+' Publication Palette: High-Contrast Modern Academic Colors
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #1E293B
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 12
+}
+
+skinparam card {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    BorderThickness 1.2
+}
+
+skinparam arrow {
+    Color #1E293B
+    Thickness 1.3
+}
+
+' ========================================================
+' TIER 1: CLIENT-SIDE HOPE-FL NETWORK ARCHITECTURE
+' ========================================================
+package "Client-Side HOPE-FL Architecture (On-Device Neural Model)" as ClientModel #F8FAFC {
+
+    package "1. Lightweight Vision Feature Trunk" as VisionTrunk #EFF6FF {
+        card "<b>Raw Input Image Batch</b>\nShape: (B, H, W, C) = (B, 28, 28, 1)" as InImg #FFFFFF
+        card "<b>Strided Conv Layer 1</b>\n16 filters, 3×3 kernel, stride 2, SAME\nOutput: (B, 14, 14, 16)" as Conv1 #FFFFFF
+        card "<b>Strided Conv Layer 2</b>\n32 filters, 3×3 kernel, stride 2, SAME\nOutput: (B, 7, 7, 32)" as Conv2 #FFFFFF
+        card "<b>Spatial Global Pooling & Dense Projection</b>\nGlobal Average Pool + Dense(64)\n<b>Feature Representation x<sub>t</sub> ∈ ℝ<sup>64</sup></b>" as TrunkProj #FFFFFF
+
+        InImg -down-> Conv1
+        Conv1 -down-> Conv2
+        Conv2 -down-> TrunkProj
+    }
+
+    package "2. Continuous Memory System (CMS Core)" as CMSBlock #F0FDF4 {
+        card "<b>Query / Key / Value Projections</b>\n<b>q</b><sub>t</sub>, <b>k</b><sub>t</sub>, <b>v</b><sub>t</sub> = Dense<sub>Q,K,V</sub>(<b>x</b><sub>t</sub>) ∈ ℝ<sup>64</sup>" as ProjQKV #FFFFFF
+
+        card "<b>Associative Memory State & Surprise Engine</b>\n* Memory Matrix <b>M</b><sub>t</sub> ∈ ℝ<sup>64 × 64</sup>\n* Expectation: <b>v̂</b><sub>t</sub> = <b>k</b><sub>t</sub> <b>M</b><sub>t-1</sub>\n* Surprise: <b>S</b><sub>t</sub> = <b>v</b><sub>t</sub> - <b>v̂</b><sub>t</sub>" as SurpriseEngine #FFF7ED
+
+        card "<b>Adaptive Retention & Fast-Weight Writing</b>\n* Forgetting Gate: α<sub>t</sub> = σ(<b>x</b><sub>t</sub> <b>W</b><sub>α</sub> + b<sub>α</sub>)\n* Fast Update: <b>M</b><sub>t</sub> = α<sub>t</sub> <b>M</b><sub>t-1</sub> + η<sub>mem</sub>(<b>k</b><sub>t</sub><sup>T</sup> ⊗ <b>S</b><sub>t</sub>)\n<i>Adapts online to distribution shifts in forward pass!</i>" as FastWeights #ECFDF5
+
+        card "<b>Associative Readout & Residual Fusion</b>\n<b>r</b><sub>t</sub> = <b>q</b><sub>t</sub> <b>M</b><sub>t</sub>\n<b>y</b><sub>t</sub> = LayerNorm(Dense(<b>r</b><sub>t</sub>) + <b>x</b><sub>t</sub>)" as ReadoutBlock #FAF5FF
+
+        TrunkProj -down-> ProjQKV
+        ProjQKV -down-> SurpriseEngine
+        SurpriseEngine -down-> FastWeights
+        FastWeights -down-> ReadoutBlock
+        TrunkProj -down-> ReadoutBlock : Residual Skip
+    }
+
+    package "3. Classification Head" as ClassifierHead #FFFBEB {
+        card "<b>Dynamic Classification Head</b>\nLogits = Dense(features=10)(<b>y</b><sub>t</sub>)\n* Softmax Categorical Distribution\n* Cross-Entropy Loss L<sub>CE</sub>" as DenseOut #FFFFFF
+
+        ReadoutBlock -down-> DenseOut
+    }
+}
+
+' ========================================================
+' TIER 2: DECENTRALIZED FEDERATED OPTIMIZATION WITH FEDM3
+' ========================================================
+package "Server-Side Coordination & FedM3 Optimization Loop" as ServerCoord #FAF5FF {
+    card "<b>Decentralized Non-IID Client Partitions</b>\nClients compute local steps on private data silos (Dirichlet α=0.5)\nLocal Update: ΔW<sub>t</sub><sup>(k)</sup>" as ClientCohort #FFFFFF
+
+    card "<b>FedM3 Multi-Scale Momentum Hub</b>\n* Fast drift tracking: <b>V</b><sub>fast</sub> (β=0.80)\n* Slow global curvature: <b>V</b><sub>slow</sub> (β=0.98)\n* Convex Blend: <b>M</b><sub>t</sub> = 0.6 <b>V</b><sub>fast</sub> + 0.4 <b>V</b><sub>slow</sub>" as ServerFedM3 #EFF6FF
+
+    card "<b>Quintic Newton-Schulz Polar Orthogonalizer</b>\n5-step iteration projects updates onto orthogonal Stiefel manifold\n<i>Eliminates orthogonalization overshoot & stabilizes Non-IID consensus</i>" as PolarOrtho #F0FDF4
+
+    card "<b>Global Consensus Broadcast</b>\nConsensus Weights <b>W</b><sub>t+1</sub> distributed to all edge devices" as BroadcastHub #ECFDF5
+
+    DenseOut -down-> ClientCohort : Local Gradients
+    ClientCohort -down-> ServerFedM3 : Model Updates ΔW<sub>t</sub><sup>(k)</sup>
+    ServerFedM3 -down-> PolarOrtho : Blended Direction
+    PolarOrtho -down-> BroadcastHub : Orthogonalized Step <b>O</b><sub>t</sub>
+    BroadcastHub -left-> InImg : Deploy Global Model <b>W</b><sub>t+1</sub>
+}
+
+@enduml

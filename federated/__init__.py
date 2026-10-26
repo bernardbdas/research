@@ -1,0 +1,51 @@
+"""Federated Learning module with plug-and-play aggregation strategies and training simulation."""
+
+from federated import aggregators
+from federated.aggregators import (
+    AGGREGATOR_REGISTRY,
+    BaseAggregator,
+    FedAdam,
+    FedAvg,
+    FedM3,
+    FedMedian,
+    FedMuon,
+    FedProx,
+    FedTrimmedMean,
+    get_aggregator,
+    list_aggregators,
+    register_aggregator,
+)
+from federated.training import (
+    extract_partition_arrays,
+    load_centralized_arrays,
+    make_eval_step,
+    make_train_step,
+    train_centralized,
+    train_federated,
+)
+
+# Friendly alias for researchers preferring 'strategies' nomenclature
+strategies = aggregators
+
+__all__ = [
+    "AGGREGATOR_REGISTRY",
+    "BaseAggregator",
+    "FedAdam",
+    "FedAvg",
+    "FedM3",
+    "FedMedian",
+    "FedMuon",
+    "FedProx",
+    "FedTrimmedMean",
+    "aggregators",
+    "extract_partition_arrays",
+    "get_aggregator",
+    "list_aggregators",
+    "load_centralized_arrays",
+    "make_eval_step",
+    "make_train_step",
+    "register_aggregator",
+    "strategies",
+    "train_centralized",
+    "train_federated",
+]

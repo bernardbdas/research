@@ -1,0 +1,73 @@
+@startuml communication_efficiency
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam ActivityBorderColor #1E293B
+skinparam ActivityBackgroundColor #F8FAFC
+skinparam ActivityDiamondBorderColor #1E293B
+skinparam ActivityDiamondBackgroundColor #F1F5F9
+skinparam PartitionBorderColor #3B82F6
+skinparam PartitionBackgroundColor #FFFFFF
+skinparam ArrowColor #1E293B
+skinparam ArrowThickness 1.2
+
+|Edge Client Uplink Stage|
+start
+:Compute Raw Weight Delta Δ<b>w</b><sub>t</sub><sup>k</sup> ∈ ℝ<sup>D</sup>\n(Full precision FP32: 32 bits/param);
+
+partition "Sparsification Pipeline (Top-K / Thresholding)" {
+    :Compute Absolute Coordinate Magnitudes |Δ<b>w</b><sub>t</sub><sup>k</sup>|;
+    :Sort magnitudes and determine cutoff threshold τ;
+    :Generate Binary Coordinate Mask: <b>m</b> = 𝕀(|Δ<b>w</b>| ≥ τ);
+    :Retain Top-K% active coordinates ((100-K)% set to zero);
+}
+
+partition "Quantization Pipeline (Uniform Stochastic)" {
+    :Compute Dynamic Scale Factor:\ns = max |Δ<b>w</b>| / (2<sup>b-1</sup> - 1);
+    :Apply Stochastic Rounding with uniform dither <b>u</b> ~ 𝒰(-0.5, 0.5):\nq = clip( round(Δ<b>w</b> / s + <b>u</b>), -2<sup>b-1</sup>, 2<sup>b-1</sup> - 1 );
+    :Cast quant values to b-bit integer representation\n(e.g., INT8: 8 bits or INT4: 4 bits);
+}
+
+partition "Payload Packaging & Transmission" {
+    :Pack non-zero quantized values and sparse coordinate indices;
+    note right
+      <b>Communication Efficiency Gains:</b>
+      * FP32 (32b) -> INT8 (8b) = 4× reduction
+      * Top-10% Sparsity = 10× reduction
+      * <b>Compound Gain: ~40× Uplink Reduction</b>
+    end note
+    :Transmit compressed payload over gRPC uplink channel;
+}
+
+|Central Server Aggregation Stage|
+:Receive compressed client updates from active cohort S<sub>t</sub>;
+
+partition "Reconstruction & Weighted Delta Gathering" {
+    :Decompress bitstream and unpack coordinate indices;
+    :Dequantize integers back to float tensor:\nΔ<b>ŵ</b><sub>t</sub><sup>k</sup> = q · s;
+    :Gather weighted consensus gradient delta:\nΔ<b>W</b><sub>t</sub> = Σ<sub>k</sub> ( |D<sub>k</sub>| / |D| ) · Δ<b>ŵ</b><sub>t</sub><sup>k</sup>;
+}
+
+partition "FedM3 Dual-Scale Momentum Engine" {
+    :Fast Momentum: <b>M</b><sub>t</sub><sup>fast</sup> = β<sub>fast</sub> <b>M</b><sub>t-1</sub><sup>fast</sup> + (1 - β<sub>fast</sub>) Δ<b>W</b><sub>t</sub>;
+    :Slow Momentum: <b>M</b><sub>t</sub><sup>slow</sup> = β<sub>slow</sub> <b>M</b><sub>t-1</sub><sup>slow</sup> + (1 - β<sub>slow</sub>) Δ<b>W</b><sub>t</sub>;
+    :Convex Blending: <b>M</b><sub>t</sub> = γ <b>M</b><sub>t</sub><sup>fast</sup> + (1 - γ) <b>M</b><sub>t</sub><sup>slow</sup>;
+    :Nesterov Lookahead: <b>V</b><sub>t</sub> = (1 + β<sub>fast</sub>) <b>M</b><sub>t</sub> - β<sub>fast</sub> <b>M</b><sub>t-1</sub>;
+}
+
+partition "Quintic Newton-Schulz Polar Orthogonalization" {
+    :Normalize Spectral Norm: X<sub>0</sub> = <b>V</b><sub>t</sub> / (||<b>V</b><sub>t</sub>||<sub>F</sub> + ε);
+    :Iterate 5 steps onto Stiefel Manifold:\nX<sub>k+1</sub> = a X<sub>k</sub> + b (X<sub>k</sub> X<sub>k</sub><sup>T</sup>) X<sub>k</sub> + c (X<sub>k</sub> X<sub>k</sub><sup>T</sup>)<sup>2</sup> X<sub>k</sub>;
+    :Orthogonalized Update: <b>O</b><sub>t</sub> = X<sub>5</sub>;
+}
+
+partition "Global Model Update & Broadcast" {
+    :Apply Orthogonalized Step: <b>W</b><sub>t+1</sub> = <b>W</b><sub>t</sub> + η <b>O</b><sub>t</sub>;
+    :Broadcast updated global model <b>W</b><sub>t+1</sub> to clients;
+}
+
+stop
+
+@enduml

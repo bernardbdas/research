@@ -1,0 +1,146 @@
+@startuml data_pipeline_classes
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam classFontSize 11
+skinparam linetype ortho
+
+skinparam class {
+    BackgroundColor #F8FAFC
+    BorderColor #1E293B
+    BorderThickness 1.2
+    ArrowColor #1E293B
+}
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.2
+    FontStyle bold
+}
+
+package "Flower Dataset Partitioners (flwr_datasets)" {
+    abstract class "Partitioner" as Partitioner {
+        + num_partitions : int
+        + dataset : Dataset
+        --
+        + {abstract} load_partition(partition_id: int) : Dataset
+        + is_dataset_assigned() : bool
+    }
+
+    class "IidPartitioner" as IidPartitioner {
+        + num_partitions : int
+        --
+        + load_partition(partition_id: int) : Dataset
+        .. Distribution ..
+        Uniform random baseline sampling
+    }
+
+    class "DirichletPartitioner" as DirichletPartitioner {
+        + num_partitions : int
+        + partition_by : str = "label"
+        + alpha : float | Sequence[float]
+        + min_partition_size : int = 10
+        --
+        + load_partition(partition_id: int) : Dataset
+        .. Distribution ..
+        Non-IID Dirichlet label skew Dir(α)
+    }
+
+    class "PathologicalPartitioner" as PathoPartitioner {
+        + num_partitions : int
+        + partition_by : str = "label"
+        + num_classes_per_partition : int = 2
+        --
+        + load_partition(partition_id: int) : Dataset
+        .. Distribution ..
+        Extreme class-restricted subsets
+    }
+
+    class "ShardPartitioner" as ShardPartitioner {
+        + num_shards_per_partition : int
+        --
+        + load_partition(partition_id: int) : Dataset
+    }
+
+    class "ExponentialPartitioner" as ExpPartitioner {
+        + num_partitions : int
+        --
+        + load_partition(partition_id: int) : Dataset
+        .. Distribution ..
+        Quantity imbalance skew
+    }
+
+    class "FederatedDataset" as FederatedDataset {
+        + dataset_name : str
+        + partitioners : dict[str, Partitioner]
+        --
+        + load_partition(partition_id: int, split: str) : Dataset
+        + load_split(split: str) : Dataset
+    }
+}
+
+package "Multi-Modal Dataset Catalog & Local Storage" {
+    class "DatasetCatalog" as Catalog <<utils.data_processing>> {
+        + vision_datasets : 15 (MNIST, CIFAR-10/100, Fashion-MNIST, USPS, SVHN...)
+        + audio_datasets : 4 (Speech Commands, Common Voice, LibriSpeech...)
+        + tabular_datasets : 5 (Adult Census, Iris, ChEMBL AqSol...)
+        + text_datasets : 9 (MBPP, HumanEval, MMLU, Financial Phrasebank...)
+        + multimodal_datasets : 1 (FedJAM)
+        --
+        + resolve_dataset_name(name: str) : str
+        + get_dataset_modality(name: str) : str
+    }
+
+    class "DataProcessingPipeline" as Pipeline <<utils.data_processing>> {
+        + prepare_and_save_dataset(name: str, val_ratio: float) : dict[str, Path]
+        + load_processed_dataset(name: str, split: str) : Dataset | DatasetDict
+        + get_federated_dataset(name: str, partitioners: dict) : FederatedDataset
+    }
+
+    class "ApacheParquetStore" as ParquetStore <<Storage: data/processed/>> {
+        + train.parquet : Clean partitioned splits
+        + val.parquet : Evaluation splits
+        + test.parquet : Held-out benchmark splits
+    }
+
+    class "RawDownloadCache" as RawStore <<Storage: data/raw/>> {
+        + arrow_ipc_files : Hugging Face cached tables
+    }
+}
+
+package "Hugging Face In-Memory Dataset Abstractions" {
+    class "Dataset" as HFDataset {
+        + num_rows : int
+        + column_names : list[str]
+        --
+        + to_parquet(path: str) : None
+        + {static} from_parquet(path: str) : Dataset
+    }
+
+    class "DatasetDict" as HFDatasetDict {
+        + data : dict[str, Dataset]
+        --
+        + __getitem__(split: str) : Dataset
+    }
+}
+
+Partitioner <|-- IidPartitioner
+Partitioner <|-- DirichletPartitioner
+Partitioner <|-- PathoPartitioner
+Partitioner <|-- ShardPartitioner
+Partitioner <|-- ExpPartitioner
+
+FederatedDataset o-- Partitioner : utilizes
+FederatedDataset ..> HFDataset : generates partitions
+
+Pipeline ..> Catalog : queries modality & aliases
+Pipeline ..> RawStore : caches downloads
+Pipeline ..> ParquetStore : writes Parquet splits
+Pipeline ..> FederatedDataset : constructs backed by Parquet
+HFDataset ..> ParquetStore : serializes to / from
+HFDatasetDict *-- HFDataset : contains
+
+@enduml
