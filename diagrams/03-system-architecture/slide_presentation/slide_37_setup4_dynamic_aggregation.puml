@@ -33,29 +33,26 @@ skinparam arrow {
 
 package "EXPERIMENTAL SETUP #4: STATIC VS. DYNAMIC AGGREGATION STRATEGIES" as Setup4 #EFF6FF {
 
-    package "1. Non-IID Client Cohort" as S1 #F8FAFC {
-        card "<b>Heterogeneous Edge Testbed</b>\n• Dataset: MNIST under Dirichlet (α = 0.5)\n• K = 5 Edge Clients, Rounds = 10\n• Standardized client learning rate: η = 0.01" as SiloCard #FFFFFF
+    package "1. Non-IID Silo Testbed" as S1 #F8FAFC {
+        card "<b>Heterogeneous Silo Setup</b>\n• MNIST under Dirichlet Skew (α = 0.5)\n• K = 5 Edge Clients, 10 Rounds\n• Standardized client LR: η = 0.01" as SiloCard #FFFFFF
     }
 
     package "2. Evaluated Server Aggregation Algorithms" as S2 #F0FDF4 {
         card "<b>Static Baseline: FedAvg (McMahan 2017)</b>\nArithmetic sample-weighted mean (No drift correction)" as A_FedAvg #FFFFFF
 
-        card "<b>Proximal Dynamic: FedProx (Li 2020)</b>\nProximal loss penalty (μ = 0.01) to constrain local drift" as A_FedProx #EFF6FF
+        card "<b>Dynamic Baselines:</b>\n• <b>FedProx (Li 2020):</b> Proximal penalty (μ = 0.01)\n• <b>FedMedian / FedTrimmedMean:</b> Byzantine filtering\n• <b>FedAdam (Reddi 2020):</b> Adaptive server momentum\n• <b>FedMuon (Takezawa 2025):</b> Stiefel polar orthogonalization" as A_Baselines #EFF6FF
 
-        card "<b>Robust Dynamic: FedMedian / FedTrimmedMean</b>\nCoordinate-wise median & trimmed mean (β = 0.1) for Byzantine filtering" as A_FedMed #FFF7ED
+        card "<b>OUR PROPOSED INNOVATIONS:</b>\n• <b>FedM3 (Module #1 Alone):</b> Dual-scale momentum + Quintic Newton-Schulz\n• <b>HOPE-FL + FedM3 (Unified):</b> Client CMS Memory + Server FedM3" as A_Ours #ECFDF5
 
-        card "<b>Adaptive Dynamic: FedAdam (Reddi 2020)</b>\nServer coordinate momentum (η = 0.05, β<sub>1</sub> = 0.9, β<sub>2</sub> = 0.99)" as A_FedAdam #FAF5FF
-
-        A_FedAvg -down-> A_FedProx
-        A_FedProx -down-> A_FedMed
-        A_FedMed -down-> A_FedAdam
+        A_FedAvg -down-> A_Baselines
+        A_Baselines -down-> A_Ours
     }
 
     package "3. Target Pareto Dimensions" as S3 #FAF5FF {
-        card "<b>Multi-Objective Evaluation Matrix</b>\n• <b>Non-IID Accuracy Trajectory (%)</b>\n• <b>Computational Complexity (FLOPs / Round)</b>\n• <b>Cryptographic Overhead (Paillier HE & SecAgg)</b>\n• <b>Pareto Frontier Efficiency Synthesis</b>" as MatrixCard #FFFFFF
+        card "<b>Multi-Objective Evaluation Matrix</b>\n• <b>Non-IID Convergence Trajectory (%)</b>\n• <b>Computational Complexity (FLOPs / Round)</b>\n• <b>Cryptographic Overhead (Paillier HE & SecAgg)</b>\n• <b>Leaderboard Accuracy Ranking</b>" as MatrixCard #FFFFFF
     }
 
-    S1 -right-> S2 : Client Deltas
+    S1 -right-> S2 : Client Deltas ΔW
     S2 -right-> S3 : Multi-Metric Benchmark
 }
 

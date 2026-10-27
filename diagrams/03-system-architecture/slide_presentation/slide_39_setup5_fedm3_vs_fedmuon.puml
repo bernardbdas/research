@@ -38,18 +38,18 @@ package "EXPERIMENTAL SETUP #5: FEDM3 VS. FEDMUON & BASELINE OPTIMIZERS" as Setu
     }
 
     package "2. Advanced Manifold Optimizers Compared" as S2 #FAF5FF {
-        card "<b>FedMuon Baseline (Takezawa et al. 2025)</b>\n• Single-scale temporal momentum (β = 0.9)\n• Newton-Schulz polar orthogonalization\n• Unconditioned on client drift" as MuonCard #FFFFFF
+        card "<b>FedMuon Baseline (Takezawa et al. 2025)</b>\n• Single-scale temporal momentum (β = 0.9)\n• Newton-Schulz polar orthogonalization\n• Unconditioned on client drift (overshoots under skew)" as MuonCard #FFFFFF
 
         card "<b>FedM3 Optimizer (Ours: Module #1)</b>\n• <b>Dual-Scale Momentum:</b> Fast (β<sub>f</sub>=0.80) + Slow (β<sub>s</sub>=0.98)\n• <b>Convex Blending:</b> M<sub>t</sub> = 0.6 V<sub>fast</sub> + 0.4 V<sub>slow</sub>\n• <b>Quintic Newton-Schulz:</b> Polar factor on St(p, n)" as M3Card #ECFDF5
 
-        card "<b>Classical Baselines:</b> FedAvg, FedProx, FedAdam" as ClassicCard #EFF6FF
+        card "<b>HOPE-FL + FedM3 (Ours: Unified Proposed System)</b>\n• Client CMS test-time memory + Server FedM3" as FullCard #EFF6FF
 
-        ClassicCard -down-> MuonCard
         MuonCard -down-> M3Card
+        M3Card -down-> FullCard
     }
 
     package "3. Target Validation Matrix" as S3 #F0FDF4 {
-        card "<b>Empirical Benchmarks (Slide 39)</b>\n• <b>Non-IID Accuracy Trajectory across Rounds</b>\n• <b>Loss Surface Optimization Stability</b>\n• <b>Singular Value Spectrum Normalization</b>\n• <b>Rounds to Cross 90% Target Accuracy</b>" as BenchCard #FFFFFF
+        card "<b>Empirical Benchmarks (Slide 39 Reproduction)</b>\n• <b>Non-IID Accuracy Trajectory across Rounds</b>\n• <b>Loss Surface Optimization Stability</b>\n• <b>Rounds to Cross 90% Target Accuracy</b>\n• <b>Test-Time Covariate Shift Retention</b>" as BenchCard #FFFFFF
     }
 
     S1 -right-> S2 : Evaluated on Silos (α=0.5)

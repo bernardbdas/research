@@ -33,26 +33,25 @@ skinparam arrow {
 
 package "EXPERIMENTAL SETUP #2: CENTRALIZED VS. FEDERATED OPTIMIZATION" as Setup2 #EFF6FF {
 
-    package "1. Backbone Architecture" as S1 #F8FAFC {
-        card "<b>Pluggable Neural Backbone</b>\n• Model: <b>SimpleCNN / HOPE-FL Net</b>\n• Global Average Pooling (GAP)\n• Footprint: ~126k parameters\n• Input: (B, 28, 28, 1) → 10 classes" as ModelCard #FFFFFF
+    package "1. Paradigm A: Centralized SGD" as S1 #FFF7ED {
+        card "<b>The Empirical Ceiling (Bound)</b>\n• All training data pooled on 1 server\n• Standard SGD with momentum (η = 0.05)\n• Batch Size: B = 64 across 20 epochs\n• <b>Zero privacy protection</b>" as C1 #FFFFFF
     }
 
-    package "2. Paradigm A: Centralized SGD (The Bound)" as S2 #FFF7ED {
-        card "<b>Centralized Empirical Ceiling</b>\n• All training data pooled on 1 central server\n• Standard SGD with momentum (η = 0.05)\n• Batch Size: B = 64 across 20 epochs\n• <b>Zero privacy protection</b>" as CentCard #FFFFFF
+    package "2. Paradigm B: Standard FedAvg" as S2 #EFF6FF {
+        card "<b>Baseline Federated Learning</b>\n• K = 5 Edge Silos, 10 Rounds\n• Local SGD: 1 epoch/round (η = 0.01)\n• Arithmetic parameter averaging\n• <b>Suffers ~4% Federation Penalty</b>" as C2 #FFFFFF
     }
 
-    package "3. Paradigm B: Decentralized FedAvg" as S3 #F0FDF4 {
-        card "<b>Federated Learning (McMahan 2017)</b>\n• Data partitioned across <b>K = 5 silos</b>\n• Local SGD: 1 epoch per round (η = 0.01)\n• Server: Weighted parameter aggregation\n• Evaluated across <b>10 communication rounds</b>" as FedCard #FFFFFF
+    package "3. Paradigm C: HOPE-FL + FedM3 (Ours)" as S3 #F0FDF4 {
+        card "<b>Our Unified Architecture</b>\n• Client CMS test-time associative memory\n• Server FedM3 dual-momentum aggregation\n• Polar orthogonalization on Stiefel manifold\n• <b>Narrows the Federation Penalty to <1.3%!</b>" as C3 #ECFDF5
     }
 
-    package "4. Target Comparison Metrics" as S4 #FAF5FF {
-        card "<b>The Federation Penalty Measurement</b>\n• <b>Convergence Lag:</b> Epochs vs. Comm Rounds\n• <b>Accuracy Deficit:</b> ΔAcc = Acc<sub>Cent</sub> - Acc<sub>Fed</sub>\n• <b>Overlay Loss Trajectory Analysis</b>" as MetricCard #FFFFFF
+    package "4. Quantitative Target Metrics" as S4 #FAF5FF {
+        card "<b>The Federation Penalty Measurement</b>\n• <b>Convergence Lag:</b> Epochs vs. Comm Rounds\n• <b>Accuracy Deficit:</b> ΔAcc = Acc<sub>Cent</sub> - Acc<sub>Fed</sub>\n• <b>Overlay Loss Trajectory Analysis</b>" as C4 #FFFFFF
     }
 
-    S1 -right-> S2 : Benchmark 1
-    S1 -right-> S3 : Benchmark 2
-    S2 -down-> S4 : Central Ceiling
-    S3 -down-> S4 : FedAvg Trajectory
+    S1 -right-> S2 : Privacy vs Utility
+    S2 -right-> S3 : Innovation Leap
+    S3 -down-> S4 : Benchmark Comparison
 }
 
 @enduml

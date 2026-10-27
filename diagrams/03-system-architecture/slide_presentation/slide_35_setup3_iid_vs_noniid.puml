@@ -34,31 +34,33 @@ skinparam arrow {
 package "EXPERIMENTAL SETUP #3: IID VS. NON-IID DATA & THE CLIENT DRIFT PHENOMENON" as Setup3 #EFF6FF {
 
     package "1. Dataset Testbed" as S1 #F8FAFC {
-        card "<b>Multi-Domain Testbed</b>\n• <b>MNIST:</b> Clean handwritten digits\n• <b>Fashion-MNIST:</b> Complex visual textures\n• <b>USPS:</b> Low-resolution edge images" as DataCard #FFFFFF
+        card "<b>Multi-Domain Testbed</b>\n• <b>MNIST & Fashion-MNIST</b>\n• K = 10 Client Silos, 10 Rounds\n• Private Local Updates" as D1 #FFFFFF
     }
 
     package "2. Three Evaluated Distribution Regimes" as S2 #FFF7ED {
-        card "<b>Regime 1: Uniform IID</b>\nEqual class balance (No drift driver)" as R1 #FFFFFF
-
-        card "<b>Regime 2: Dirichlet Skew (α = 0.5)</b>\nModerate Non-IID label concentration" as R2 #EFF6FF
-
-        card "<b>Regime 3: Pathological (2-Class)</b>\nExtreme Non-IID (Clients disagree completely)" as R3 #FEF2F2
+        card "<b>Regime 1: Uniform IID</b> (Equal class balance - No drift)" as R1 #FFFFFF
+        card "<b>Regime 2: Dirichlet Skew (α = 0.5)</b> (Moderate non-IID)" as R2 #EFF6FF
+        card "<b>Regime 3: Pathological (2-Class)</b> (Extreme client drift)" as R3 #FEF2F2
 
         R1 -down-> R2
         R2 -down-> R3
     }
 
-    package "3. Validation Engine" as S3 #F0FDF4 {
-        card "<b>Multi-Round FL Simulation</b>\n• Backbone: <b>SimpleCNN / HOPE-FL</b>\n• Clients: K = 5 Silos, Rounds = 10\n• Strategy: Standard FedAvg\n• Evaluates divergence of local parameter updates" as SimCard #FFFFFF
+    package "3. Compared Methods" as S3 #F0FDF4 {
+        card "<b>Standard FedAvg (Static CNN)</b>\nVulnerable to gradient divergence and client drift collapse" as M_FedAvg #FFFFFF
+
+        card "<b>HOPE-FL + FedM3 (Ours)</b>\n• Client CMS absorbs local skew in forward pass\n• Server FedM3 eliminates drift on Stiefel manifold" as M_Ours #ECFDF5
+
+        M_FedAvg -down-> M_Ours
     }
 
     package "4. Measured Target Outputs" as S4 #FAF5FF {
-        card "<b>Client Drift Impact</b>\n• <b>Convergence Trajectory Drop (%)</b>\n• <b>Local Gradient Divergence Angle</b>\n• <b>Real-Time Sequence Test:</b> [2, 4, 9, 0, 0, 3, 1]" as OutCard #FFFFFF
+        card "<b>Client Drift Impact</b>\n• <b>Convergence Trajectory Drop (%)</b>\n• <b>Real-Time Target Inference Sequence:</b> [2, 4, 9, 0, 0, 3, 1]\n• <b>Recovery under Extreme Pathological Partition</b>" as D4 #FFFFFF
     }
 
     S1 -right-> S2 : Partition
-    S2 -right-> S3 : Run FL
-    S3 -right-> S4 : Quantify Drift Drop
+    S2 -right-> S3 : Train Models
+    S3 -right-> S4 : Measure Drift
 }
 
 @enduml
