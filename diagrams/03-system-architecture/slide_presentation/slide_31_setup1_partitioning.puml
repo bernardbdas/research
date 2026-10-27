@@ -1,0 +1,64 @@
+@startuml slide_31_setup1_partitioning
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 35
+skinparam nodesep 25
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+package "EXPERIMENTAL SETUP #1: FEDERATED DATASETS & PARTITIONING TECHNIQUES" as Setup1 #EFF6FF {
+
+    package "1. Multi-Modal Dataset Catalog" as S1 #F8FAFC {
+        card "<b>Curated Datasets (Flower Datasets)</b>\n• <b>MNIST:</b> 70,000 digits (28×28 grayscale)\n• <b>Fashion-MNIST:</b> 70,000 clothing articles\n• <b>USPS:</b> 9,298 low-res postal digits\n• Deterministic Apache Parquet caching" as DataCard #FFFFFF
+    }
+
+    package "2. Client Silo Allocation" as S2 #EFF6FF {
+        card "<b>Decentralized Edge Network</b>\n• Total Edge Clients: <b>K = 5 to 10</b>\n• Local Batch Size: B = 64\n• Deterministic client seed: 42\n• No inter-client communication" as ClientCard #FFFFFF
+    }
+
+    package "3. Three Evaluated Partition Regimes" as S3 #F0FDF4 {
+        card "<b>Regime A: Uniform IID</b>\n• Every client gets an equal, balanced slice of all classes\n• Baseline control scenario (No skew)" as RegIID #EFF6FF
+
+        card "<b>Regime B: Dirichlet Label Skew (α = 0.5)</b>\n• Non-IID Dirichlet distribution: Dir(α)\n• Realistic heterogeneous label concentrations" as RegDir #FFF7ED
+
+        card "<b>Regime C: Pathological Skew</b>\n• Each client strictly restricted to <b>2 classes only</b>\n• Extreme statistical drift stress-test" as RegPath #FEF2F2
+
+        RegIID -down-> RegDir
+        RegDir -down-> RegPath
+    }
+
+    package "4. Quantitative Target Metrics" as S4 #FAF5FF {
+        card "<b>Heterogeneity Measurement</b>\n• <b>Class Distribution Heatmaps</b>\n• <b>Shannon Entropy:</b> H(k) = - Σ p<sub>c</sub> log(p<sub>c</sub>)\n• <b>Total Variation Distance (TVD)</b>" as MetricCard #FFFFFF
+    }
+
+    S1 -right-> S2 : Load Partition
+    S2 -right-> S3 : Apply Partitioner
+    S3 -right-> S4 : Measure Skew
+}
+
+@enduml

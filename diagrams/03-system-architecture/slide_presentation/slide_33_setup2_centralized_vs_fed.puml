@@ -1,0 +1,58 @@
+@startuml slide_33_setup2_centralized_vs_fed
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 35
+skinparam nodesep 25
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+package "EXPERIMENTAL SETUP #2: CENTRALIZED VS. FEDERATED OPTIMIZATION" as Setup2 #EFF6FF {
+
+    package "1. Backbone Architecture" as S1 #F8FAFC {
+        card "<b>Pluggable Neural Backbone</b>\n• Model: <b>SimpleCNN / HOPE-FL Net</b>\n• Global Average Pooling (GAP)\n• Footprint: ~126k parameters\n• Input: (B, 28, 28, 1) → 10 classes" as ModelCard #FFFFFF
+    }
+
+    package "2. Paradigm A: Centralized SGD (The Bound)" as S2 #FFF7ED {
+        card "<b>Centralized Empirical Ceiling</b>\n• All training data pooled on 1 central server\n• Standard SGD with momentum (η = 0.05)\n• Batch Size: B = 64 across 20 epochs\n• <b>Zero privacy protection</b>" as CentCard #FFFFFF
+    }
+
+    package "3. Paradigm B: Decentralized FedAvg" as S3 #F0FDF4 {
+        card "<b>Federated Learning (McMahan 2017)</b>\n• Data partitioned across <b>K = 5 silos</b>\n• Local SGD: 1 epoch per round (η = 0.01)\n• Server: Weighted parameter aggregation\n• Evaluated across <b>10 communication rounds</b>" as FedCard #FFFFFF
+    }
+
+    package "4. Target Comparison Metrics" as S4 #FAF5FF {
+        card "<b>The Federation Penalty Measurement</b>\n• <b>Convergence Lag:</b> Epochs vs. Comm Rounds\n• <b>Accuracy Deficit:</b> ΔAcc = Acc<sub>Cent</sub> - Acc<sub>Fed</sub>\n• <b>Overlay Loss Trajectory Analysis</b>" as MetricCard #FFFFFF
+    }
+
+    S1 -right-> S2 : Benchmark 1
+    S1 -right-> S3 : Benchmark 2
+    S2 -down-> S4 : Central Ceiling
+    S3 -down-> S4 : FedAvg Trajectory
+}
+
+@enduml

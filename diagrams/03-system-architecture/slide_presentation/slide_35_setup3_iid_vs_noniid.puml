@@ -1,0 +1,64 @@
+@startuml slide_35_setup3_iid_vs_noniid
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 35
+skinparam nodesep 25
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+package "EXPERIMENTAL SETUP #3: IID VS. NON-IID DATA & THE CLIENT DRIFT PHENOMENON" as Setup3 #EFF6FF {
+
+    package "1. Dataset Testbed" as S1 #F8FAFC {
+        card "<b>Multi-Domain Testbed</b>\n• <b>MNIST:</b> Clean handwritten digits\n• <b>Fashion-MNIST:</b> Complex visual textures\n• <b>USPS:</b> Low-resolution edge images" as DataCard #FFFFFF
+    }
+
+    package "2. Three Evaluated Distribution Regimes" as S2 #FFF7ED {
+        card "<b>Regime 1: Uniform IID</b>\nEqual class balance (No drift driver)" as R1 #FFFFFF
+
+        card "<b>Regime 2: Dirichlet Skew (α = 0.5)</b>\nModerate Non-IID label concentration" as R2 #EFF6FF
+
+        card "<b>Regime 3: Pathological (2-Class)</b>\nExtreme Non-IID (Clients disagree completely)" as R3 #FEF2F2
+
+        R1 -down-> R2
+        R2 -down-> R3
+    }
+
+    package "3. Validation Engine" as S3 #F0FDF4 {
+        card "<b>Multi-Round FL Simulation</b>\n• Backbone: <b>SimpleCNN / HOPE-FL</b>\n• Clients: K = 5 Silos, Rounds = 10\n• Strategy: Standard FedAvg\n• Evaluates divergence of local parameter updates" as SimCard #FFFFFF
+    }
+
+    package "4. Measured Target Outputs" as S4 #FAF5FF {
+        card "<b>Client Drift Impact</b>\n• <b>Convergence Trajectory Drop (%)</b>\n• <b>Local Gradient Divergence Angle</b>\n• <b>Real-Time Sequence Test:</b> [2, 4, 9, 0, 0, 3, 1]" as OutCard #FFFFFF
+    }
+
+    S1 -right-> S2 : Partition
+    S2 -right-> S3 : Run FL
+    S3 -right-> S4 : Quantify Drift Drop
+}
+
+@enduml

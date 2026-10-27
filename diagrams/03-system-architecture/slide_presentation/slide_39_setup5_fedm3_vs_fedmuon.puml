@@ -1,0 +1,59 @@
+@startuml slide_39_setup5_fedm3_vs_fedmuon
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 35
+skinparam nodesep 25
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+package "EXPERIMENTAL SETUP #5: FEDM3 VS. FEDMUON & BASELINE OPTIMIZERS" as Setup5 #EFF6FF {
+
+    package "1. Edge Architecture Testbed" as S1 #F8FAFC {
+        card "<b>Neural Models Compared</b>\n• <b>Standard Baseline:</b> SimpleCNN (Static trunk)\n• <b>Our Architecture:</b> HOPE-FL + CMS\n  <i>(Continuous test-time associative memory)</i>" as ArchCard #FFFFFF
+    }
+
+    package "2. Advanced Manifold Optimizers Compared" as S2 #FAF5FF {
+        card "<b>FedMuon Baseline (Takezawa et al. 2025)</b>\n• Single-scale temporal momentum (β = 0.9)\n• Newton-Schulz polar orthogonalization\n• Unconditioned on client drift" as MuonCard #FFFFFF
+
+        card "<b>FedM3 Optimizer (Ours: Module #1)</b>\n• <b>Dual-Scale Momentum:</b> Fast (β<sub>f</sub>=0.80) + Slow (β<sub>s</sub>=0.98)\n• <b>Convex Blending:</b> M<sub>t</sub> = 0.6 V<sub>fast</sub> + 0.4 V<sub>slow</sub>\n• <b>Quintic Newton-Schulz:</b> Polar factor on St(p, n)" as M3Card #ECFDF5
+
+        card "<b>Classical Baselines:</b> FedAvg, FedProx, FedAdam" as ClassicCard #EFF6FF
+
+        ClassicCard -down-> MuonCard
+        MuonCard -down-> M3Card
+    }
+
+    package "3. Target Validation Matrix" as S3 #F0FDF4 {
+        card "<b>Empirical Benchmarks (Slide 39)</b>\n• <b>Non-IID Accuracy Trajectory across Rounds</b>\n• <b>Loss Surface Optimization Stability</b>\n• <b>Singular Value Spectrum Normalization</b>\n• <b>Rounds to Cross 90% Target Accuracy</b>" as BenchCard #FFFFFF
+    }
+
+    S1 -right-> S2 : Evaluated on Silos (α=0.5)
+    S2 -right-> S3 : Multi-Optimizer Benchmark
+}
+
+@enduml

@@ -1,0 +1,62 @@
+@startuml slide_37_setup4_dynamic_aggregation
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 35
+skinparam nodesep 25
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+package "EXPERIMENTAL SETUP #4: STATIC VS. DYNAMIC AGGREGATION STRATEGIES" as Setup4 #EFF6FF {
+
+    package "1. Non-IID Client Cohort" as S1 #F8FAFC {
+        card "<b>Heterogeneous Edge Testbed</b>\n• Dataset: MNIST under Dirichlet (α = 0.5)\n• K = 5 Edge Clients, Rounds = 10\n• Standardized client learning rate: η = 0.01" as SiloCard #FFFFFF
+    }
+
+    package "2. Evaluated Server Aggregation Algorithms" as S2 #F0FDF4 {
+        card "<b>Static Baseline: FedAvg (McMahan 2017)</b>\nArithmetic sample-weighted mean (No drift correction)" as A_FedAvg #FFFFFF
+
+        card "<b>Proximal Dynamic: FedProx (Li 2020)</b>\nProximal loss penalty (μ = 0.01) to constrain local drift" as A_FedProx #EFF6FF
+
+        card "<b>Robust Dynamic: FedMedian / FedTrimmedMean</b>\nCoordinate-wise median & trimmed mean (β = 0.1) for Byzantine filtering" as A_FedMed #FFF7ED
+
+        card "<b>Adaptive Dynamic: FedAdam (Reddi 2020)</b>\nServer coordinate momentum (η = 0.05, β<sub>1</sub> = 0.9, β<sub>2</sub> = 0.99)" as A_FedAdam #FAF5FF
+
+        A_FedAvg -down-> A_FedProx
+        A_FedProx -down-> A_FedMed
+        A_FedMed -down-> A_FedAdam
+    }
+
+    package "3. Target Pareto Dimensions" as S3 #FAF5FF {
+        card "<b>Multi-Objective Evaluation Matrix</b>\n• <b>Non-IID Accuracy Trajectory (%)</b>\n• <b>Computational Complexity (FLOPs / Round)</b>\n• <b>Cryptographic Overhead (Paillier HE & SecAgg)</b>\n• <b>Pareto Frontier Efficiency Synthesis</b>" as MatrixCard #FFFFFF
+    }
+
+    S1 -right-> S2 : Client Deltas
+    S2 -right-> S3 : Multi-Metric Benchmark
+}
+
+@enduml
