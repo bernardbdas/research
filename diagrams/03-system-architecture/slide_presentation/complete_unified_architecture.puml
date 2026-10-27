@@ -1,0 +1,97 @@
+@startuml complete_unified_architecture
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 40
+skinparam nodesep 28
+
+' High-contrast publication styling for presentation slides
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 17
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+' ============================================================================
+' TOP TIER: DECENTRALIZED EDGE CLIENTS (MODULE #2: CMS + MODULE #3: HOPE-FL)
+' ============================================================================
+package "TIER 1: ON-DEVICE EDGE ARCHITECTURE (HOPE-FL TRUNK + CMS FAST MEMORY)" as EdgeTier #EFF6FF {
+
+    package "1. Streaming Edge Feed" as SubSilos #F8FAFC {
+        card "<b>Decentralized Silos (Non-IID)</b>\n• K Private Client Datasets D<sub>k</sub>\n• Dirichlet Label Skew (α = 0.5)\n• Local Streaming Sensor Feed" as ClientSilos #FFFFFF
+    }
+
+    package "2. Shared Vision Trunk (HOPE-FL)" as SubTrunk #EFF6FF {
+        card "<b>Strided Convolutional Trunk</b>\n• Conv1: 16 filters, 3×3, stride 2\n• Conv2: 32 filters, 3×3, stride 2\n• Spatial Global Average Pool (GAP)\n<b>Trunk Feature x<sub>t</sub> ∈ ℝ<sup>64</sup></b>\n<i>(Synchronized via Federated Rounds)</i>" as VisionTrunk #FFFFFF
+    }
+
+    package "3. Test-Time CMS Engine (Inner Loop)" as SubCMS #F0FDF4 {
+        card "<b>Associative Surprise & Fast Weights</b>\n• Prediction: <b>v̂</b><sub>t</sub> = <b>k</b><sub>t</sub> <b>M</b><sub>t-1</sub>\n• Surprise Error: <b>S</b><sub>t</sub> = <b>v</b><sub>t</sub> - <b>v̂</b><sub>t</sub>\n• Dynamic Gate: α<sub>t</sub> = σ(<b>x</b><sub>t</sub><b>W</b><sub>α</sub> + b<sub>α</sub>)\n• Forward Write: <b>M</b><sub>t</sub> = α<sub>t</sub><b>M</b><sub>t-1</sub> + η<sub>mem</sub>(<b>k</b><sub>t</sub><sup>T</sup> ⊗ <b>S</b><sub>t</sub>)\n<b>[Zero-Backprop Test Adaptation | Zero Forgetting]</b>" as CMSEngine #ECFDF5
+    }
+
+    package "4. Prediction & Local Deltas" as SubDeltas #FFFBEB {
+        card "<b>Task Head & Local Deltas</b>\n• Readout: <b>y</b><sub>t</sub> = LayerNorm(<b>r</b><sub>t</sub><b>W</b><sub>O</sub> + <b>x</b><sub>t</sub>)\n• Dynamic Classifier: Logits = Dense(10)(<b>y</b><sub>t</sub>)\n• Local Loss: ∇L<sub>CE</sub>(<b>y</b><sub>t</sub>, y<sub>true</sub>)\n• Trunk Delta: ΔW<sub>t</sub><sup>(k)</sup> = W<sub>t,E</sub><sup>(k)</sup> - W<sub>t</sub>\n<b>[Fast Memory M<sub>t</sub> stays 100% private on device]</b>" as LocalDelta #FFFFFF
+    }
+
+    SubSilos -right-> SubTrunk : Streaming Batch
+    SubTrunk -right-> SubCMS : Feature Probe <b>x</b><sub>t</sub>
+    SubCMS -right-> SubDeltas : Adapted Context <b>M</b><sub>t</sub>
+}
+
+' ============================================================================
+' MIDDLE CHANNEL: SECURE TRANSMISSION & PARAMETER GATHERING
+' ============================================================================
+package "COMMUNICATION LAYER: Uplink Delta Transmission & Weighted Aggregation" as CommLayer #F8FAFC {
+    card "<b>Calibrated Privacy & Gathering Channel:</b>  ΔW<sub>t</sub> = Σ<sub>k=1</sub><sup>K</sup> (|D<sub>k</sub>| / |D|) · ΔW<sub>t</sub><sup>(k)</sup>\n• Local DP-SGD: Per-sample clipping (C = 1.0) + Gaussian perturbation (σ = 0.5)\n• Bonawitz SecAgg: Pairwise zero-sum random masking (Zero Server Parameter Visibility)" as GatheringChannel #FFFFFF
+}
+
+' ============================================================================
+' BOTTOM TIER: SERVER-SIDE DYNAMIC OPTIMIZATION (MODULE #1: FEDM3)
+' ============================================================================
+package "TIER 2: SERVER DYNAMIC OPTIMIZATION (FEDM3 ON STIEFEL MANIFOLD)" as ServerTier #FAF5FF {
+
+    package "1. Dual-Scale Momentum Engine" as SubMomentum #EFF6FF {
+        card "<b>Multi-Scale Momentum Tracking</b>\n• <b>Fast Buffer (β<sub>f</sub> = 0.80):</b> Tracks rapid local client drift\n• <b>Slow Buffer (β<sub>s</sub> = 0.98):</b> Anchors consensus curvature\n• <b>Convex Blending:</b> M<sub>t</sub> = 0.6 V<sub>fast</sub> + 0.4 V<sub>slow</sub>\n• <b>Nesterov Step:</b> G<sub>t</sub> = M<sub>t</sub> + β<sub>f</sub>(M<sub>t</sub> - M<sub>t-1</sub>)" as MomentumEngine #FFFFFF
+    }
+
+    package "2. Stiefel Polar Orthogonalizer" as SubNS #FAF5FF {
+        card "<b>Quintic Newton-Schulz Iteration (5 Steps)</b>\nProjects 2D weight updates onto Stiefel manifold St(p, n):\n• <b>X</b><sub>0</sub> = <b>G</b><sub>t</sub> / ||<b>G</b><sub>t</sub>||<sub>F</sub>\n• <b>X</b><sub>k+1</sub> = <b>X</b><sub>k</sub>(a<b>I</b> + b<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub> + c(<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub>)<sup>2</sup>)\n• <b>O</b><sub>t</sub> = <b>X</b><sub>5</sub> ≈ PolarFactor(<b>G</b><sub>t</sub>)" as PolarNS #FFFFFF
+    }
+
+    package "3. Global Consensus Update" as SubConsensus #ECFDF5 {
+        card "<b>Global Consensus Weight Step</b>\n<b>W</b><sub>t+1</sub> = <b>W</b><sub>t</sub> - η<sub>server</sub> · <b>O</b><sub>t</sub>\n• Eliminates Non-IID client drift overshoot\n• Stabilizes singular-value spectrum\n<i>Broadcast to all clients for Round t+1</i>" as ConsensusStep #FFFFFF
+    }
+
+    SubMomentum -right-> SubNS : Blended Velocity <b>G</b><sub>t</sub>
+    SubNS -right-> SubConsensus : Orthogonal Update <b>O</b><sub>t</sub>
+}
+
+' ============================================================================
+' CLOSED-LOOP CONNECTIONS
+' ============================================================================
+SubDeltas -down-> CommLayer : Transmit Trunk Deltas ΔW<sub>t</sub><sup>(k)</sup> (M<sub>t</sub> Retained Locally)
+CommLayer -down-> SubMomentum : Aggregated Descent Direction ΔW<sub>t</sub>
+
+SubConsensus -left-> SubTrunk : Broadcast Global Consensus Model W<sub>t+1</sub> for Round t+1
+
+@enduml

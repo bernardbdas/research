@@ -29,7 +29,8 @@ notebooks/
 │   ├── 11-class-incremental-continual-learning.ipynb [Chapter 11: Vision Transfer & Stability-Plasticity]
 │   └── 12-test-time-training-continual-learning.ipynb[Chapter 12: Vision-TTT Self-Supervised Adaptation]
 └── 05-federated-foundation-models/       # Pillar 5: Neural Memory Architectures at Scale
-    └── 13-titans-neural-memory-benchmark.ipynb       [Chapter 13: Dual-Memory Titans & Surprise Gradients]
+    ├── 13-titans-neural-memory-benchmark.ipynb       [Chapter 13: Dual-Memory Titans & Surprise Gradients]
+    └── 14-nested-hope-fl-fedm3-benchmark.ipynb       [Chapter 14: Truly Nested FL: HOPE-FL, CMS & FedM3]
 ```
 
 ______________________________________________________________________
@@ -247,3 +248,17 @@ ______________________________________________________________________
     Test Time*. arXiv:2412.0009.
   - Ba, J., Hinostroza, R. H., Salakhutdinov, R., & Frey, B. (2016). *Using Fast Weights
     to Attend to the Recent Past*. NeurIPS.
+
+#### **Chapter 14: Truly Nested Federated Learning (HOPE-FL, CMS & FedM3)**
+
+- **File**:
+  [`14-nested-hope-fl-fedm3-benchmark.ipynb`](file:///Users/bernard/Workspace/ACADEMIA/research/notebooks/05-federated-foundation-models/14-nested-hope-fl-fedm3-benchmark.ipynb)
+- **Target**: Comprehensive empirical benchmark evaluating Truly Nested Federated Learning:
+  Module #1 (FedM3 server dynamic aggregation on the Stiefel manifold), Module #2 (Continuous
+  Memory System forward-pass test-time adaptation under covariate shifts), and Module #3
+  (HOPE-FL end-to-end synergy) compared against FedAvg, FedProx, FedAdam, and FedMuon.
+- **Citations**:
+  - Takezawa, Y., et al. (2025). *FedMuon: Federated Learning with Bias-Corrected Matrix Polar Orthogonalization*. arXiv:2502.14815.
+  - Behrouz, A., et al. (2024). *Titans: Learning to Memorize at Test Time*. arXiv:2412.0009.
+  - Sun, Y., et al. (2020). *Test-Time Training with Self-Supervision for Generalization under Distribution Shifts*. ICML.
+  - Karimireddy, S. P., et al. (2020). *SCAFFOLD: Stochastic Controlled Averaging for Federated Learning*. ICML.

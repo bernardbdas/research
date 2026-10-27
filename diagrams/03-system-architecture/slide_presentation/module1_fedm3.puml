@@ -1,0 +1,95 @@
+@startuml module1_fedm3
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 38
+skinparam nodesep 28
+
+' High-contrast publication styling for presentation slides
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+' ============================================================================
+' TOP TIER: EDGE CLIENT COHORTS & PARAMETER GATHERING
+' ============================================================================
+package "TIER 1: DECENTRALIZED EDGE CLIENTS & AGGREGATION" as Tier1 #EFF6FF {
+
+    package "1. Decentralized Client Cohort (Non-IID Skew)" as SubClients #F8FAFC {
+        card "<b>Client 1 (Silo α = 0.5)</b>\n• Local SGD on private D<sub>1</sub>\n• Parameter Update: ΔW<sub>t</sub><sup>(1)</sup>" as C1 #FFFFFF
+        card "<b>Client 2 (Silo α = 0.5)</b>\n• Local SGD on private D<sub>2</sub>\n• Parameter Update: ΔW<sub>t</sub><sup>(2)</sup>" as C2 #FFFFFF
+        card "<b>Client K (Silo α = 0.5)</b>\n• Local SGD on private D<sub>K</sub>\n• Parameter Update: ΔW<sub>t</sub><sup>(K)</sup>" as CK #FFFFFF
+    }
+
+    package "2. Parameter Gathering Channel" as SubGathering #EFF6FF {
+        card "<b>Weighted Gradient Aggregation</b>\nΔW<sub>t</sub> = Σ<sub>k=1</sub><sup>K</sup> (|D<sub>k</sub>| / |D|) · ΔW<sub>t</sub><sup>(k)</sup>\n• Captures raw aggregated descent direction\n• Filters client sample imbalances |D<sub>k</sub>|/|D|" as AggDelta #FFFFFF
+
+        card "<b>Decoupled Parameter Splitting</b>\n• 2D Weight Matrices: W<sub>conv</sub>, W<sub>dense</sub> ∈ ℝ<sup>d<sub>1</sub> × d<sub>2</sub></sup>\n• 1D Vectors: Biases <b>b</b> and LayerNorm scales <b>γ</b>" as SplitParams #FFFFFF
+
+        AggDelta -down-> SplitParams
+    }
+
+    SubClients -right-> AggDelta : Parameter Deltas ΔW<sub>t</sub><sup>(k)</sup>
+}
+
+' ============================================================================
+' BOTTOM TIER: FEDM3 SERVER OPTIMIZER ENGINE (STIEFEL MANIFOLD)
+' ============================================================================
+package "TIER 2: FEDM3 MULTI-SCALE OPTIMIZER (STIEFEL MANIFOLD)" as Tier2 #FAF5FF {
+
+    package "3. Dual-Scale Temporal Momentum Engine" as SubMomentum #F0FDF4 {
+        card "<b>Fast Buffer (β<sub>fast</sub> = 0.80)</b>\n<b>V</b><sub>fast, t</sub> = β<sub>f</sub><b>V</b><sub>fast, t-1</sub> + (1 - β<sub>f</sub>)ΔW<sub>t</sub>\n<i>Tracks rapid, high-frequency client drift</i>" as FastBuf #EFF6FF
+
+        card "<b>Slow Manifold Buffer (β<sub>slow</sub> = 0.98)</b>\n<b>V</b><sub>slow, t</sub> = β<sub>s</sub><b>V</b><sub>slow, t-1</sub> + (1 - β<sub>s</sub>)ΔW<sub>t</sub>\n<i>Anchors low-frequency global curvature</i>" as SlowBuf #FFF7ED
+
+        card "<b>Convex Blending & Nesterov Step</b>\n<b>M</b><sub>t</sub> = 0.60 <b>V</b><sub>fast</sub> + 0.40 <b>V</b><sub>slow</sub>\n<b>G</b><sub>t</sub> = <b>M</b><sub>t</sub> + β<sub>f</sub>(<b>M</b><sub>t</sub> - <b>M</b><sub>t-1</sub>)" as Blended #FFFFFF
+
+        FastBuf -down-> Blended
+        SlowBuf -down-> Blended
+    }
+
+    package "4. Parameter-Specific Projection Engine" as SubNS #FAF5FF {
+        card "<b>Quintic Newton-Schulz Polar Iteration (2D)</b>\nProjects 2D matrices onto orthogonal factor:\n• <b>X</b><sub>0</sub> = <b>G</b><sub>t</sub> / ||<b>G</b><sub>t</sub>||<sub>F</sub>\n• <b>X</b><sub>k+1</sub> = <b>X</b><sub>k</sub>(a<b>I</b> + b<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub> + c(<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub>)<sup>2</sup>)\n• (a = 3.4445, b = -4.7750, c = 2.0315)\n<b>O</b><sub>t</sub> = <b>X</b><sub>5</sub> ≈ PolarFactor(<b>G</b><sub>t</sub>) ∈ St(p, n)" as NSBlock #FFFFFF
+
+        card "<b>1D Vector Handler (Adaptive Adam)</b>\nFor bias vectors & LayerNorm scales:\n<b>v</b><sub>1D, t</sub> = β<sub>2</sub> <b>v</b><sub>t-1</sub> + (1 - β<sub>2</sub>) <b>g</b><sub>1D</sub><sup>2</sup>\n<b>O</b><sub>1D, t</sub> = <b>g</b><sub>1D, t</sub> / (√<b>v</b><sub>t</sub> + ε)" as Adam1D #F8FAFC
+
+        NSBlock -down-> Adam1D : Normalized Updates
+    }
+
+    package "5. Consensus Weight Step" as SubConsensus #ECFDF5 {
+        card "<b>Global Consensus Update</b>\n<b>W</b><sub>t+1</sub> = <b>W</b><sub>t</sub> - η<sub>server</sub> · <b>O</b><sub>t</sub>\n• Provably eliminates non-IID client drift\n• Normalizes singular value spectrum\n• Decoupled weight decay: - λ <b>W</b><sub>t</sub>\n<i>Broadcast to all clients for round t+1</i>" as StepW #FFFFFF
+    }
+
+    SubMomentum -right-> SubNS : Blended Velocity <b>G</b><sub>t</sub>
+    SubNS -right-> SubConsensus : Orthogonal Update <b>O</b><sub>t</sub>
+}
+
+' ============================================================================
+' INTER-TIER PIPELINE CONNECTIONS
+' ============================================================================
+SplitParams -down-> SubMomentum : Aggregated Gradient ΔW<sub>t</sub>
+SubConsensus -left-> SubClients : Broadcast Consensus Model W<sub>t+1</sub> for Round t+1
+
+@enduml

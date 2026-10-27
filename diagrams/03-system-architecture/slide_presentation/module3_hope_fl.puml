@@ -1,0 +1,115 @@
+@startuml module3_hope_fl
+top to bottom direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 14
+skinparam ranksep 40
+skinparam nodesep 28
+
+' High-contrast publication styling for presentation slides
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.5
+    FontStyle bold
+    FontSize 16
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.8
+    FontSize 13
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.2
+    FontSize 13
+    FontStyle bold
+}
+
+' ============================================================================
+' TOP TIER: ON-DEVICE EDGE CLIENT ARCHITECTURE (INNER LOOP)
+' ============================================================================
+package "TIER 1: ON-DEVICE EDGE ARCHITECTURE (HOPE-FL INNER LOOP)" as Tier1 #EFF6FF {
+
+    package "1. Lightweight Vision Trunk (Backbone)" as SubTrunk #FFFFFF {
+        card "<b>Streaming Edge Input</b>\nShape: (B, H, W, C) = (B, 28, 28, 1)\n<i>Local streaming edge camera feed</i>" as ImgIn #FFFFFF
+
+        card "<b>Dual Strided Convolutions</b>\n• Conv1: 16 filters, 3×3, stride 2\n• Conv2: 32 filters, 3×3, stride 2\n• Global Average Pooling (GAP) + Dense(64)\n<b>Trunk Feature x<sub>t</sub> ∈ ℝ<sup>64</sup></b>\n• Footprint: ~126k parameters total\n<i>[Replaces heavy Transformers in traditional HOPE]</i>" as Convs #EFF6FF
+
+        ImgIn -down-> Convs
+    }
+
+    package "2. Decoupled CMS Fast Memory (On-Device)" as SubCMS #F0FDF4 {
+        card "<b>Subspace Projections & Surprise Engine</b>\n• Projections: <b>q</b><sub>t</sub>, <b>k</b><sub>t</sub>, <b>v</b><sub>t</sub> = Dense(<b>x</b><sub>t</sub>) ∈ ℝ<sup>64</sup>\n• Retrieved Expectation: <b>v̂</b><sub>t</sub> = <b>k</b><sub>t</sub> <b>M</b><sub>t-1</sub>\n• Associative Surprise Error: <b>S</b><sub>t</sub> = <b>v</b><sub>t</sub> - <b>v̂</b><sub>t</sub>" as SurpriseEngine #FFF7ED
+
+        card "<b>Test-Time Fast-Weight Writing (No Backprop)</b>\n• Dynamic Forgetting: α<sub>t</sub> = σ(<b>x</b><sub>t</sub><b>W</b><sub>α</sub> + b<sub>α</sub>)\n• Forward Write: <b>M</b><sub>t</sub> = α<sub>t</sub> <b>M</b><sub>t-1</sub> + η<sub>mem</sub>(<b>k</b><sub>t</sub><sup>T</sup> ⊗ <b>S</b><sub>t</sub>)\n<b>[DIFFERENCE FROM TRADITIONAL HOPE]</b>\n• Adapts dynamically online with 0 backward passes!\n• State <b>M</b><sub>t</sub> never leaves edge device (Private)" as FastWrite #ECFDF5
+
+        SurpriseEngine -down-> FastWrite
+    }
+
+    package "3. Task Readout & Prediction Head" as SubHead #FFFBEB {
+        card "<b>Associative Readout & Residual Fusion</b>\n• Readout Probe: <b>r</b><sub>t</sub> = <b>q</b><sub>t</sub> <b>M</b><sub>t</sub>\n• Fused Embedding: <b>y</b><sub>t</sub> = LayerNorm(<b>r</b><sub>t</sub> <b>W</b><sub>O</sub> + <b>x</b><sub>t</sub>)" as Readout #FFFFFF
+
+        card "<b>Dynamic Classification Head</b>\nLogits = Dense(features=10)(<b>y</b><sub>t</sub>)\nSoftmax Probabilities P(y|x)\nTask Loss: ∇L<sub>CE</sub>(<b>y</b><sub>t</sub>, y<sub>true</sub>)\n<i>(Drives trunk weight delta computation)</i>" as ClassHead #FFFFFF
+
+        Readout -down-> ClassHead
+    }
+
+    SubTrunk -right-> SubCMS : Feature Probe <b>x</b><sub>t</sub>
+    SubCMS -right-> SubHead : Memory Context <b>M</b><sub>t</sub>
+}
+
+' ============================================================================
+' MIDDLE CHANNEL: DECOUPLED STATE PRIVACY & GATHERING
+' ============================================================================
+package "COMMUNICATION LAYER: Decoupled State Privacy & Parameter Gathering" as CommLayer #F8FAFC {
+    card "<b>Decoupled State Transmission:</b>  Trunk Deltas ΔW<sub>t</sub><sup>(k)</sup> Transmitted | Memory M<sub>t</sub> Retained 100% on Edge\n• Local Differential Privacy: Per-sample gradient clipping (C = 1.0) with Gaussian noise perturbation (σ = 0.5)\n• Zero-Sum Masking (SecAgg): Aggregates ΔW<sub>t</sub> = Σ (|D<sub>k</sub>|/|D|) ΔW<sub>t</sub><sup>(k)</sup> with zero server visibility of individual client updates" as GatheringChannel #FFFFFF
+}
+
+' ============================================================================
+' BOTTOM TIER: NESTED FEDERATED SYNCHRONIZATION (OUTER LOOP)
+' ============================================================================
+package "TIER 2: NESTED FEDERATED SYNCHRONIZATION (FEDM3 OUTER LOOP)" as Tier2 #FAF5FF {
+
+    package "4. Dual-Scale Momentum Buffer" as SubMom #EFF6FF {
+        card "<b>Multi-Scale Momentum Tracking</b>\n• Fast Buffer: <b>V</b><sub>fast</sub> (β<sub>f</sub> = 0.80) tracks local drift\n• Slow Buffer: <b>V</b><sub>slow</sub> (β<sub>s</sub> = 0.98) anchors manifold\n• Convex Blend: <b>M</b><sub>t</sub> = 0.6 <b>V</b><sub>fast</sub> + 0.4 <b>V</b><sub>slow</sub>" as MomCard #FFFFFF
+
+        card "<b>Nesterov Lookahead Acceleration</b>\n<b>G</b><sub>t</sub> = <b>M</b><sub>t</sub> + β<sub>f</sub>(<b>M</b><sub>t</sub> - <b>M</b><sub>t-1</sub>)\n<i>Accelerates consensus convergence</i>" as NesterovCard #EFF6FF
+
+        MomCard -down-> NesterovCard
+    }
+
+    package "5. FedM3 Stiefel Polar Orthogonalizer" as SubFedM3 #FAF5FF {
+        card "<b>Quintic Newton-Schulz Polar Iteration</b>\n<b>[DIFFERENCE FROM TRADITIONAL HOPE]</b>\n• Projects updates onto Stiefel manifold St(p, n)\n• <b>X</b><sub>k+1</sub> = <b>X</b><sub>k</sub>(a<b>I</b> + b<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub> + c(<b>X</b><sub>k</sub><sup>T</sup><b>X</b><sub>k</sub>)<sup>2</sup>)" as FedM3Server #FFFFFF
+
+        card "<b>Drift-Invariant Subspace Factor</b>\n<b>O</b><sub>t</sub> = <b>X</b><sub>5</sub> ≈ PolarFactor(<b>G</b><sub>t</sub>)\n• Provably eliminates non-IID client drift\n• Normalizes singular values across silos" as PolarCard #F5F3FF
+
+        FedM3Server -down-> PolarCard
+    }
+
+    package "6. Global Model Consensus Step" as SubBroad #ECFDF5 {
+        card "<b>Global Consensus Weight Step</b>\n<b>W</b><sub>t+1</sub> = <b>W</b><sub>t</sub> - η<sub>server</sub> · <b>O</b><sub>t</sub>\n• Decoupled weight decay regularization\n• Eliminates non-IID drift without central data" as BroadcastHub #FFFFFF
+
+        card "<b>Consensus Deployment</b>\nBroadcast updated global weights <b>W</b><sub>t+1</sub>\nto all edge clients for Round t+1" as DeployCard #ECFDF5
+
+        BroadcastHub -down-> DeployCard
+    }
+
+    SubMom -right-> SubFedM3 : Blended Direction <b>G</b><sub>t</sub>
+    SubFedM3 -right-> SubBroad : Orthogonal Update <b>O</b><sub>t</sub>
+}
+
+' ============================================================================
+' INTER-TIER CONNECTIONS
+' ============================================================================
+SubHead -down-> CommLayer : Transmit Trunk Deltas ΔW<sub>t</sub><sup>(k)</sup> (M<sub>t</sub> Kept Local)
+CommLayer -down-> SubMom : Aggregated Descent Direction ΔW<sub>t</sub>
+DeployCard -left-> SubTrunk : Deploy Consensus Model W<sub>t+1</sub> for Round t+1
+
+@enduml

@@ -1,0 +1,65 @@
+@startuml hope_vs_hopefl_comparison
+left to right direction
+
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 13
+skinparam ranksep 35
+skinparam nodesep 30
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #0F172A
+    BorderThickness 2.0
+    FontStyle bold
+    FontSize 15
+}
+
+skinparam card {
+    BackgroundColor #FFFFFF
+    BorderColor #334155
+    BorderThickness 1.5
+    FontSize 12
+}
+
+skinparam arrow {
+    Color #0F172A
+    Thickness 2.0
+    FontSize 12
+    FontStyle bold
+}
+
+' ========================================================
+' 3 HORIZONTAL STAGES COMPARING TRADITIONAL HOPE VS HOPE-FL
+' ========================================================
+
+package "Dimension 1: Data & Topology" as Dim1 #F8FAFC {
+    card "<b>Traditional HOPE (DeepMind)</b>\n• <b>Monolithic Pooling:</b> Central dataset D = ∪ D<sub>k</sub>\n• Violates GDPR / HIPAA privacy\n• Central bandwidth bottleneck" as D1_Trad #FFF7ED
+
+    card "<b>HOPE-FL (Ours)</b>\n• <b>Decentralized Silos:</b> Data stays on device\n• Guaranteed privacy & data sovereignty\n• Handles Non-IID label skew (α=0.5)" as D1_Ours #F0FDF4
+
+    D1_Trad -[hidden]down-> D1_Ours
+}
+
+package "Dimension 2: Memory & Adaptation" as Dim2 #F8FAFC {
+    card "<b>Traditional HOPE (DeepMind)</b>\n• <b>Heavy Attention:</b> Transformer backbone\n• <b>Coupled Backprop:</b> BPTT through memory\n• All states stored centrally in datacenter" as D2_Trad #FFF7ED
+
+    card "<b>HOPE-FL (Ours)</b>\n• <b>Lightweight Trunk:</b> Strided Conv (126k params)\n• <b>Decoupled State:</b> M<sub>t</sub> stays private on device\n• <b>Zero-Backprop:</b> Forward-pass associative surprise" as D2_Ours #F0FDF4
+
+    D2_Trad -[hidden]down-> D2_Ours
+}
+
+package "Dimension 3: Optimization & Consensus" as Dim3 #F8FAFC {
+    card "<b>Traditional HOPE (DeepMind)</b>\n• <b>Centralized Optimizer:</b> Standard Adam / SGD\n• Vulnerable to non-stationary gradient collapse\n• No mechanism for client drift" as D3_Trad #FFF7ED
+
+    card "<b>HOPE-FL (Ours)</b>\n• <b>FedM3 Server Optimizer:</b> Dual-scale momentum\n• <b>Stiefel Manifold:</b> Quintic Newton-Schulz polar\n• Provably eliminates heterogeneous client drift" as D3_Ours #F0FDF4
+
+    D3_Trad -[hidden]down-> D3_Ours
+}
+
+Dim1 --> Dim2 : Model Architecture Evolution
+Dim2 --> Dim3 : Optimization & Deployment
+
+@enduml
